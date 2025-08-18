@@ -72,10 +72,21 @@
       if(act==='edit-offer'){ goEdit(item); return; }
       if(act==='delete-offer'){
         if(!confirm('Удалить оффер «'+(item?.title||'')+'»?')) return;
-        try{
-          const res = await fetch(apiBase().replace(/\/+$/,'') + '/api/v1/merchant/offers/'+id, {
-            method:'DELETE', headers:{ 'X-Foody-Key': key() }
-          });
+        const base = apiBase().replace(/\/+$/,'');
+        const url1 = base + '/api/v1/merchant/offers/' + id;
+        const url2 = base + '/api/v1/merchant/offers/' + id + '?restaurant_id=' + encodeURIComponent(rid());
+        let ok = false, lastErr = null;
+        for (const url of [url1, url2]){
+          try{
+            const res = await fetch(url, { method:'DELETE', headers:{ 'X-Foody-Key': key() } });
+            if (res.ok){ ok = true; break; }
+            lastErr = new Error('HTTP '+res.status);
+          }catch(e){ lastErr = e; }
+        }
+        if(!ok) throw lastErr || new Error('Не удалось удалить');
+        await load();
+        return;
+      }});
           if(!res.ok) throw new Error('HTTP '+res.status);
           await load();
         }catch(err){ alert('Не удалось удалить: ' + err.message); }
@@ -250,3 +261,66 @@ function goEdit(o){
     setTimeout(fill, 800);
   } catch(e){ console.warn('goEdit failed', e); }
 }
+
+
+// === Modal helpers ===
+function openEditModal(o){
+  const wrap = document.getElementById('offerEditModalBackdrop');
+  const form = document.getElementById('offerEditForm');
+  if (!wrap || !form) return;
+  // Prefill
+  const set = (name, val) => { const el = form.querySelector(`[name="${name}"]`); if (el) el.value = val ?? ''; };
+  const fromCents = (c) => (c!=null ? (Number(c)/100) : null);
+  const toFixed2 = (n) => (n==null || isNaN(n) ? '' : (Math.round(Number(n)*100)/100).toString());
+  const price = (o.price!=null ? Number(o.price) : fromCents(o.price_cents));
+  const old   = (o.original_price!=null ? Number(o.original_price) : fromCents(o.original_price_cents));
+  set('title', o.title || '');
+  set('original_price', toFixed2(old));
+  set('price', toFixed2(price));
+  set('qty_total', (o.qty_total!=null ? o.qty_total : (o.qty||o.qty_left||1)));
+  if (o.expires_at){
+    try{
+      const dt = new Date(o.expires_at);
+      const iso = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+      set('expires_at', iso);
+    }catch(_){ set('expires_at',''); }
+  } else set('expires_at','');
+  wrap.classList.add('show');
+  wrap.dataset.id = o.id;
+  form.dataset.id = o.id;
+}
+function closeEditModal(){
+  const wrap = document.getElementById('offerEditModalBackdrop');
+  if (wrap) { wrap.classList.remove('show'); delete wrap.dataset.id; }
+}
+// Save handler
+async function saveEditModal(){
+  const wrap = document.getElementById('offerEditModalBackdrop');
+  const form = document.getElementById('offerEditForm');
+  if (!wrap || !form) return;
+  const id = wrap.dataset.id;
+  const F = new FormData(form);
+  const payload = {
+    title: F.get('title') || undefined,
+    original_price: F.get('original_price') ? Number(F.get('original_price')) : undefined,
+    price: F.get('price') ? Number(F.get('price')) : undefined,
+    qty_total: F.get('qty_total') ? Number(F.get('qty_total')) : undefined,
+    expires_at: F.get('expires_at') || undefined,
+  };
+  Object.keys(payload).forEach(k=>payload[k]===undefined && delete payload[k]);
+  const url = apiBase().replace(/\/+$/,'') + '/api/v1/merchant/offers/' + id;
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: { 'Content-Type':'application/json', 'X-Foody-Key': key() },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error('HTTP '+res.status);
+  closeEditModal();
+  await load();
+}
+// Wire modal buttons
+document.addEventListener('click', (e)=>{
+  const btnCancel = e.target.closest('[data-edit-cancel]'); if (btnCancel){ e.preventDefault(); closeEditModal(); }
+  const btnSave   = e.target.closest('[data-edit-save]'); if (btnSave){ e.preventDefault(); saveEditModal().catch(err=>alert('Не удалось сохранить: '+err.message)); }
+  const outside = e.target?.id === 'offerEditModalBackdrop'; if (outside) closeEditModal();
+});
