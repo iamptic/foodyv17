@@ -535,3 +535,13 @@ section#auth .card :is(.card-title,.title,h1,h2,h3){
   #offerList .row { grid-template-columns: 1.6fr .9fr .7fr .8fr 1.1fr minmax(96px, max-content); }
   #offerList .row .actions .btn { padding: 8px 10px; }
 }
+
+/* Password field wrapper: aligns eye button and fixes uneven fields */
+.pwd-field{ position: relative; display: block; }
+.pwd-field > input{ width: 100%; padding-right: 44px; min-height: 44px; }
+.pwd-toggle{
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; border: 0; background: transparent; cursor: pointer; opacity: .8;
+}
+.pwd-toggle[aria-pressed="true"]{ opacity: 1; }
+.pwd-toggle svg{ width: 100%; height: 100%; fill: currentColor; }

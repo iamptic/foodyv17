@@ -872,3 +872,14 @@ if (!ok) activateTab('auth');
     } catch(_){}
   });
 })();
+
+
+  // Password eye toggle (global)
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('.pwd-toggle'); if (!btn) return;
+    const input = btn.parentElement?.querySelector('input'); if (!input) return;
+    const isText = input.type === 'text';
+    input.type = isText ? 'password' : 'text';
+    btn.setAttribute('aria-pressed', (!isText).toString());
+    if (!isText) { input.setAttribute('data-pwd-is-text','1'); } else { input.removeAttribute('data-pwd-is-text'); }
+  });
