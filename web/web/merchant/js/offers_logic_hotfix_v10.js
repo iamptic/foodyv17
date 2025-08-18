@@ -122,7 +122,7 @@
       ].map(withRID);
       for (const url of variants) {
         try {
-          const resp = await fetch(url, { method: 'DELETE' });
+          const resp = await fetch(url, { method: 'DELETE', {} });
           if (resp.ok) return true;
           if (resp.status === 404) return true; // already gone
         } catch(e) { /* try next */ }
