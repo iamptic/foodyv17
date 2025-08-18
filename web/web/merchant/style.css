@@ -536,12 +536,12 @@ section#auth .card :is(.card-title,.title,h1,h2,h3){
   #offerList .row .actions .btn { padding: 8px 10px; }
 }
 
-/* Password field wrapper for auth */
-.pwd-field{ position: relative; display: block; }
-.pwd-field > input{ width: 100%; padding-right: 44px; min-height: 44px; }
-.pwd-toggle{
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  width: 32px; height: 32px; border: 0; background: transparent; cursor: pointer; opacity: .8;
-}
-.pwd-toggle[aria-pressed="true"]{ opacity: 1; }
-.pwd-toggle svg{ width: 100%; height: 100%; fill: currentColor; }
+/* === Normalize inputs in Profile pane === */
+#profile .form input[type="password"],
+#profile .form input[type="text"],
+#profile .form input[type="tel"],
+#profile .form input[type="email"],
+#profile .form input[type="number"]{ min-height:48px; line-height:1.2; }
+
+#profile .pwd-field > input{ padding-right:44px; }
+#profile .pwd-toggle{ width:32px; height:32px; right:12px; }

@@ -134,12 +134,10 @@
                 <input name="login" id="loginPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 900 000 00 00" required>
               </label>
               <label>Пароль
-                <div class="pwd-field">
-                <input name="password" id="loginPassword" type="password" placeholder="••••••••" required>
-                <button type="button" class="pwd-toggle" aria-label="Показать пароль" aria-pressed="false">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path><circle cx="12" cy="12" r="3.5"></circle></svg>
-                </button>
-              </div>
+                <div class="pw-field">
+                  <input name="password" id="loginPassword" type="password" placeholder="••••••••" required>
+                  <button class="pw-toggle" id="toggleLoginPw" type="button" aria-label="Показать пароль" aria-pressed="false">👁</button>
+                </div>
               </label>
               <div id="loginError" class="form-error hidden"></div>
               <button class="btn btn-primary" type="submit">Войти</button>
@@ -177,12 +175,10 @@
                 <span class="chip" data-from="00:00" data-to="23:59">24/7</span>
               </div>
               <label class="full">Пароль
-                <div class="pwd-field">
-                <input name="password" id="registerPassword" type="password" placeholder="••••••••" required>
-                <button type="button" class="pwd-toggle" aria-label="Показать пароль" aria-pressed="false">
-                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"></path><circle cx="12" cy="12" r="3.5"></circle></svg>
-                </button>
-              </div>
+                <div class="pw-field">
+                  <input name="password" id="registerPassword" type="password" placeholder="мин. 6 символов" minlength="6" required>
+                  <button class="pw-toggle" id="toggleRegisterPw" type="button" aria-label="Показать пароль" aria-pressed="false">👁</button>
+                </div>
               </label>
               <div id="registerError" class="form-error hidden"></div>
               <button class="btn btn-primary" type="submit">Зарегистрироваться</button>
