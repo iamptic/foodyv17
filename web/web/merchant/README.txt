@@ -1,7 +1,7 @@
-Foody merchant patch (final, no design changes)
-1) Скопируй содержимое архива в папку merchant/ c заменой.
-2) Подключи в своем merchant/index.html перед </body>:
+Foody merchant final (RID enforced)
+1) Copy folder `merchant/` over your project.
+2) In your existing merchant/index.html add before </body>:
    <link rel="stylesheet" href="./css/modal_center_fix.css">
-   <script src="./js/offers_logic_patch_final.js"></script>
-3) Никакие стили/разметку не меняем. Модалка центрируется локально, даты с flatpickr если он уже подключен.
-4) Все запросы к /api/v1/merchant/offers* автоматически получают ?restaurant_id=... (берется из localStorage/meta/query).
+   <script src="./js/offers_logic_patch_final_rid.js"></script>
+3) Assumes restaurant_id stored in localStorage under 'restaurant_id' (fallback keys supported).
+4) All offers API calls are made with ?restaurant_id=... . Delete soft-handles 404; edit modal centered.

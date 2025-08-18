@@ -1,1 +1,1 @@
-.foody-modal-center-only{} /* placeholder: all modal styles inline in JS to avoid touching design */
+.foody-modal-center{display:grid;place-items:center}
