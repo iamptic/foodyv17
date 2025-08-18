@@ -63,21 +63,21 @@
   function bindActions(items){
     const root = qs('#offerList'); if(!root) return;
     root.addEventListener('click', async function(e){
-      const row = e.target.closest('.row'); if(!row) return;
-      const id = row.getAttribute('data-offer-id');
-      const act = e.target.getAttribute('data-action');
-      if(!act || !id) return;
-
+      const btn = e.target.closest('[data-action]'); if(!btn) return;
+      e.preventDefault(); e.stopPropagation();
+      const act = btn.getAttribute('data-action');
+      const row = btn.closest('.row'); if(!row) return;
+      const id = row.getAttribute('data-offer-id'); if(!id) return;
       const item = items.find(x => String(x.id) === String(id));
-      if(act==='edit-offer'){ openEdit(item); }
+      if(act==='edit-offer'){ openEdit(item); return; }
       if(act==='delete-offer'){
-        if(!confirm('Удалить оффер «'+(item.title||'')+'»?')) return;
+        if(!confirm('Удалить оффер «'+(item?.title||'')+'»?')) return;
         try{
           const res = await fetch(apiBase().replace(/\/+$/,'') + '/api/v1/merchant/offers/'+id + '?restaurant_id=' + encodeURIComponent(rid()), {
             method:'DELETE', headers:{ 'X-Foody-Key': key() }
           });
           if(!res.ok) throw new Error('HTTP '+res.status);
-          await load(); // reload
+          await load();
         }catch(err){ alert('Не удалось удалить: ' + err.message); }
       }
     });

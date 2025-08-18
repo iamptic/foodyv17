@@ -54,7 +54,7 @@
 
   document.addEventListener('DOMContentLoaded', ()=>{
     const isAuth = !!(localStorage.getItem('foody_restaurant_id') && localStorage.getItem('foody_key'));
-    const def = isAuth ? 'offers' : 'dashboard';
+    const def = isAuth ? 'offers' : 'auth';
     activateTab(def);
   });
 })();
