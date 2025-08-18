@@ -49,27 +49,7 @@
     if (rest.length > 8) out += ' ' + rest.slice(8,10);
     return out;
   }
-  // === robust helpers for edit modal (injected) ===
-function q(sel){ return document.querySelector(sel); }
-function pickOne(selectors){
-  for (const s of selectors){ const el = q(s); if (el) return el; }
-  return null;
-}
-function showModalEl(modal){
-  if (!modal) return;
-  if (typeof modal.showModal === 'function') { try { modal.showModal(); return; } catch(_){} }
-  modal.style.display = '';
-  modal.classList.add('open');
-  modal.setAttribute('aria-hidden','false');
-}
-function hideModalEl(modal){
-  if (!modal) return;
-  if (typeof modal.close === 'function') { try { modal.close(); return; } catch(_){} }
-  modal.classList.remove('open');
-  modal.style.display = 'none';
-  modal.setAttribute('aria-hidden','true');
-}
-function attachPhoneMask(input){
+  function attachPhoneMask(input){
     if (!input || input.dataset.maskBound === '1') return;
     input.dataset.maskBound = '1';
     input.type = 'tel'; input.inputMode = 'tel'; input.autocomplete = 'tel';
@@ -611,7 +591,7 @@ function bindExpirePresets(){
         $('#editExpires').value = o.expires_at ? formatLocal(o.expires_at) : (o.expires || '');
         $('#editCategory').value = o.category || 'other';
         $('#editDesc').value = o.description || '';
-        m.style.display = '';
+        m.classList.add('_open');
       }
       function formatLocal(iso){
         try{ const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }catch(_){ return ''; }
@@ -622,7 +602,7 @@ function bindExpirePresets(){
       }
       const editForm = $('#offerEditForm');
       const editCancel = $('#offerEditCancel');
-      if (editCancel) editCancel.addEventListener('click', (ev)=>{ ev.preventDefault(); const m=$('#offerEditModal')||$('#editOfferModal')||$('#editModal'); hideModalEl(m); });
+      if (editCancel) editCancel.addEventListener('click', (ev)=>{ ev.preventDefault(); const m=$('#offerEditModal'); if(m) m.classList.remove('_open'); });
       if (editForm) editForm.addEventListener('submit', async (ev)=>{
         ev.preventDefault();
         const id = $('#editId').value;
@@ -637,7 +617,7 @@ function bindExpirePresets(){
         };
         try{
           await api(`/api/v1/merchant/offers/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
-          const m=$('#offerEditModal')||$('#editOfferModal')||$('#editModal'); hideModalEl(m);
+          const m=$('#offerEditModal'); if(m) m.classList.remove('_open');
           showToast('Сохранено');
           loadOffers();
         }catch(err){ showToast('Не удалось сохранить: '+(err.message||err)); }
