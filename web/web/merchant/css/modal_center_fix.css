@@ -1,0 +1,31 @@
+
+/* Scope strictly to the edit modal to avoid design changes */
+#offerEditModal._open {
+  position: fixed !important;
+  inset: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  z-index: 9999 !important;
+}
+#offerEditModal._open ._backdrop{
+  position:absolute;inset:0;background:rgba(0,0,0,.6);
+}
+#offerEditModal._open ._dlg{
+  position:relative;background:var(--modal-bg,#151a21);
+  color:var(--modal-fg,#e5e7eb);
+  width:min(720px,96vw);max-height:90vh;overflow:auto;
+  border-radius:16px;box-shadow:0 12px 36px rgba(0,0,0,.5);
+}
+#offerEditModal._open ._hdr, 
+#offerEditModal._open ._ftr{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+#offerEditModal._open ._ftr{border-bottom:none;border-top:1px solid rgba(255,255,255,.06)}
+#offerEditModal._open ._body{padding:14px 16px;display:grid;gap:10px}
+#offerEditModal._open input, 
+#offerEditModal._open select,
+#offerEditModal._open textarea{
+  max-width:100%;
+}
+._no-scroll{overflow:hidden !important;}
