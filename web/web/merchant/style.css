@@ -536,7 +536,7 @@ section#auth .card :is(.card-title,.title,h1,h2,h3){
   #offerList .row .actions .btn { padding: 8px 10px; }
 }
 
-/* Password field wrapper: aligns eye button and fixes uneven fields */
+/* Password field wrapper for auth */
 .pwd-field{ position: relative; display: block; }
 .pwd-field > input{ width: 100%; padding-right: 44px; min-height: 44px; }
 .pwd-toggle{

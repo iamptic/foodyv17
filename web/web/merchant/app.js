@@ -874,7 +874,7 @@ if (!ok) activateTab('auth');
 })();
 
 
-  // Password eye toggle (global)
+  // Password eye toggle (global for auth & profile)
   document.addEventListener('click', function(e){
     const btn = e.target.closest('.pwd-toggle'); if (!btn) return;
     const input = btn.parentElement?.querySelector('input'); if (!input) return;
