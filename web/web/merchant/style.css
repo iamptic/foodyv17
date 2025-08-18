@@ -548,37 +548,3 @@ section#auth .card :is(.card-title,.title,h1,h2,h3){
 /* === Foody v16 · Password fields compact & aligned === */
 :root{ --pw-field-h: 44px; }
 
-/* единый бокс и ширина */
-#profile .pwd-field, #auth .pwd-field { position: relative; display: block; width: 100%; }
-#profile .pwd-field > input,
-#auth .pwd-field > input {
-  width: 100%;
-  box-sizing: border-box;
-  height: var(--pw-field-h);
-  min-height: var(--pw-field-h);
-  line-height: calc(var(--pw-field-h) - 2px);
-  padding-right: 44px; /* место под глаз */
-}
-
-/* глаз всегда внутри инпута */
-#profile .pwd-toggle, #auth .pwd-toggle {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  border: 0;
-  background: transparent;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: .85;
-}
-#profile .pwd-toggle[aria-pressed="true"],
-#auth .pwd-toggle[aria-pressed="true"] { opacity: 1; }
-#profile .pwd-toggle svg, #auth .pwd-toggle svg { width: 100%; height: 100%; display: block; }
-
-/* на всякий — убираем старую .pw-toggle, если где-то осталась */
-#profile .pw-toggle, #auth .pw-toggle { display: none !important; }
