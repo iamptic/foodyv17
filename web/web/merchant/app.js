@@ -534,13 +534,14 @@ function bindExpirePresets(){
   }
 
   async function loadOffers() {
+    if (state._offersLoading) return; state._offersLoading = true;
     if (!state.rid || !state.key) return;
     const root = $('#offerList'); if (root) root.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
     try {
       const data = await api(`/api/v1/merchant/offers?restaurant_id=${encodeURIComponent(state.rid)}`);
       const list = (data && (data.items || data.results)) ? (data.items || data.results) : (Array.isArray(data) ? data : []);
       renderOffers(list);
-    } catch (err) { console.error(err); if (root) root.innerHTML = '<div class="hint">Не удалось загрузить</div>'; }
+    } catch (err) { console.error(err); if (root) root.innerHTML = '<div class="hint">Не удалось загрузить</div>'; } finally { state._offersLoading = false; }
   }
 
   function renderOffers(items){
@@ -558,7 +559,7 @@ function bindExpirePresets(){
         <div>${disc?`-${disc}%`:'—'}</div>
         <div>${o.qty_left ?? '—'} / ${o.qty_total ?? '—'}</div>
         <div>${exp}</div>
-        <div class="actions"><button class="btn btn-ghost" data-action="delete">Удалить</button></div>
+        <div class="actions"><button class="btn btn-ghost" data-action="edit-offer">Редактировать</button><button class="btn btn-danger" data-action="delete">Удалить</button></div>
       </div>`;
     }).join('');
     const head = `<div class="row head"><div>Название</div><div>Цена</div><div>Скидка</div><div>Остаток</div><div>До</div><div></div></div>`;
@@ -566,7 +567,62 @@ function bindExpirePresets(){
     // bind delete (delegated)
     if (!root.dataset.deleteBound){
       root.dataset.deleteBound = '1';
-      root.addEventListener('click', async (e) => {
+      
+      // delegated edit
+      root.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="edit-offer"]'); if (!btn) return;
+        const row = btn.closest('.row'); const id = row && row.getAttribute('data-offer-id'); if (!id) return;
+        // find item by id if available in state
+        try {
+          const items = (window.__FOODY_STATE__ && window.__FOODY_STATE__.offers) || null;
+          let item = null; if (items && Array.isArray(items)) item = items.find(x=> String(x.id)===String(id));
+          // If no cache, attempt to read from DOM (minimal set)
+          openOfferEditModal(item || { id });
+        } catch(_){ openOfferEditModal({ id }); }
+      }, false);
+
+      function openOfferEditModal(o){
+        const m = $('#offerEditModal'); if (!m) return;
+        $('#editId').value = o.id || '';
+        $('#editTitle').value = o.title || '';
+        $('#editOld').value = (o.original_price_cents!=null ? (o.original_price_cents/100) : (o.original_price || '')) || '';
+        $('#editPrice').value = (o.price_cents!=null ? (o.price_cents/100) : (o.price || '')) || '';
+        $('#editQty').value = (o.qty_total!=null ? o.qty_total : (o.total_qty!=null ? o.total_qty : '')) || '';
+        $('#editExpires').value = o.expires_at ? formatLocal(o.expires_at) : (o.expires || '');
+        $('#editCategory').value = o.category || 'other';
+        $('#editDesc').value = o.description || '';
+        m.style.display = '';
+      }
+      function formatLocal(iso){
+        try{ const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }catch(_){ return ''; }
+      }
+      function toIsoLocal(str){
+        if(!str) return null; const m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/); if(!m) return null;
+        const [_,Y,M,D,h,mn] = m.map(Number); const dt = new Date(Y,M-1,D,h,mn); return new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+      }
+      const editForm = $('#offerEditForm');
+      const editCancel = $('#offerEditCancel');
+      if (editCancel) editCancel.addEventListener('click', (ev)=>{ ev.preventDefault(); const m=$('#offerEditModal'); if(m) m.style.display='none'; });
+      if (editForm) editForm.addEventListener('submit', async (ev)=>{
+        ev.preventDefault();
+        const id = $('#editId').value;
+        const payload = {
+          title: $('#editTitle').value.trim(),
+          original_price: Number($('#editOld').value||0),
+          price: Number($('#editPrice').value||0),
+          qty_total: Number($('#editQty').value||0),
+          expires_at: toIsoLocal($('#editExpires').value||''),
+          category: $('#editCategory').value || 'other',
+          description: $('#editDesc').value.trim()
+        };
+        try{
+          await api(`/api/v1/merchant/offers/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
+          const m=$('#offerEditModal'); if(m) m.style.display='none';
+          showToast('Сохранено');
+          loadOffers();
+        }catch(err){ showToast('Не удалось сохранить: '+(err.message||err)); }
+      });
+    root.addEventListener('click', async (e) => {
         const btn = e.target.closest('[data-action="delete"]'); if (!btn) return;
         const row = btn.closest('.row'); const id = row && row.getAttribute('data-offer-id'); if (!id) return;
         if (!confirm('Удалить оффер?')) return;
