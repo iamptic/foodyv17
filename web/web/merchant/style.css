@@ -8,6 +8,8 @@
   --brand-2: #4ab5f1;
   --danger: #f26363;
   --shadow: 0 10px 30px rgba(0,0,0,.35);
+  /* unified form field height */
+  --field-h: 44px;
 }
 
 /* Telegram theming (if used inside Mini App) */
@@ -80,6 +82,7 @@ body { margin: 0; }
 .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
 .grid .full { grid-column: 1 / -1; }
 
+/* Forms */
 .form label { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--subtext); }
 input, textarea {
   background: #0d1218; color: var(--text);
@@ -87,6 +90,29 @@ input, textarea {
   padding: 10px 12px; outline: none;
 }
 input:focus, textarea:focus { border-color: var(--brand-2); box-shadow: 0 0 0 2px rgba(74,181,241,.15); }
+
+/* 👇 Uniform height/width for all form fields (except check/radio) */
+.form input:not([type="checkbox"]):not([type="radio"]),
+.form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  height: var(--field-h);
+  min-height: var(--field-h);
+  line-height: calc(var(--field-h) - 2px);
+}
+
+/* Password eye — unified (inside field) */
+.pwd-field, .input--with-eye { position: relative; display: block; width: 100%; }
+.pwd-field > input,
+.input--with-eye > input { padding-right: 44px; }
+.pwd-toggle {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  width: 24px; height: 24px; border: 0; background: transparent; cursor: pointer; opacity: .8;
+}
+.pwd-toggle[aria-pressed="true"]{ opacity: 1; }
+.pwd-toggle svg { width: 100%; height: 100%; display: block; }
+/* hide legacy external eye button if present */
+.pw-toggle{ display:none !important; }
 
 .btn {
   border: 0; border-radius: 12px; padding: 10px 14px; cursor: pointer;
@@ -175,7 +201,6 @@ input:focus, textarea:focus { border-color: var(--brand-2); box-shadow: 0 0 0 2p
   .stats { grid-template-columns: 1fr; }
 }
 
-
 /* Quick time buttons */
 .quick-group { display:flex; gap:8px; flex-wrap:wrap; }
 .btn-ghost {
@@ -194,29 +219,16 @@ input:focus, textarea:focus { border-color: var(--brand-2); box-shadow: 0 0 0 2p
 .btn-ghost:hover { background: #161c23; border-color: #2c3642; }
 .btn-ghost:active { transform: translateY(1px); }
 
-/* Photo preview fallback */
-.photo-preview { margin-top: 10px; border: 1px dashed var(--border); border-radius: 12px; background: #0d1218; padding: 8px; }
-.photo-preview img { max-width: 100%; display: block; border-radius: 8px; }
-.hidden { display: none !important; }
-
-
-/* Photo preview (robust) */
+/* Photo preview */
 .photo-preview { margin-top: 10px; border: 1px dashed var(--border); border-radius: 12px; background: #0d1218; padding: 8px; }
 .photo-preview img { width: 100%; max-height: 280px; object-fit: contain; display: block; border-radius: 8px; }
 .hidden { display: none !important; }
-
 
 /* FilePond dark-tune */
 .filepond--root { max-width: 100%; }
 .filepond--panel-root { background: #0d1218; border: 1px dashed var(--border); }
 .filepond--drop-label { color: var(--subtext); }
-.filepond--credits { display: none !important; } /* hide watermark */
-
-
-/* FilePond basic dark */
-.filepond--panel-root { background: #0d1218; border: 1px dashed var(--border); }
-.filepond--drop-label { color: var(--subtext); }
-
+.filepond--credits { display: none !important; }
 
 /* === Auth slider === */
 .auth-switch { position: relative; width: 100%; max-width: 360px; margin: 8px auto 16px; }
@@ -239,289 +251,61 @@ input:focus, textarea:focus { border-color: var(--brand-2); box-shadow: 0 0 0 2p
 .auth-forms { display: grid; gap: 16px; }
 .auth-forms form{ display: grid; gap: 10px; }
 
-
-/* Password toggle button */
-.pw-toggle{
-  margin-left: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  border: 1px solid var(--border-color, #ddd);
-  background: var(--surface-2, #f8f8f8);
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-/* === Password eye toggle (Foody patch 2025-08-16) === */
-.input--with-eye { position: relative; }
-.input--with-eye input[type="password"],
-.input--with-eye input[data-pwd-is-text="1"] { padding-right: 40px; }
-.pwd-toggle {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  border: none;
-  background: transparent;
-  width: 28px; height: 28px;
-  cursor: pointer;
-  opacity: .7;
-}
-.pwd-toggle:focus-visible { outline: 2px solid #000; outline-offset: 2px; }
-.pwd-toggle[aria-pressed="true"] { opacity: 1; }
-.pwd-toggle svg { display: block; width: 100%; height: 100%; }
-
-
-/* === Pretty Select (city) · Foody patch 2025-08-16 === */
+/* === Pretty Select (city) === */
 select.nice-select {
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-color: #fff;
-  border: 1px solid #DCE0E5;
-  border-radius: 12px;
-  padding: 10px 40px 10px 14px;
-  min-height: 44px;
-  line-height: 22px;
-  font-size: 16px;
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  background-color: #fff; border: 1px solid #DCE0E5;
+  border-radius: 12px; padding: 10px 40px 10px 14px;
+  min-height: var(--field-h); line-height: 22px; font-size: 16px;
   box-shadow: 0 1px 1px rgba(0,0,0,.04);
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%231A1F36' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 18px;
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 18px;
   transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
 }
 select.nice-select:hover { border-color: #C2CAD6; }
 select.nice-select:focus { outline: none; border-color: #4F46E5; box-shadow: 0 0 0 3px rgba(79,70,229,.2); }
 select.nice-select:disabled { background-color: #F6F8FB; color: #9AA3B2; cursor: not-allowed; }
-select.nice-select::-ms-expand { display: none; } /* IE/Edge legacy */
+select.nice-select::-ms-expand { display: none; }
 @media (max-width: 420px) {
   select.nice-select { font-size: 15px; padding: 10px 38px 10px 12px; }
 }
-/* === /Pretty Select === */
-
 /* Match text input to pretty select sizing */
-input[type="text"].city-other,
-#cityOtherInput {
-  min-height: 44px;
-  border-radius: 12px;
-  padding: 10px 12px;
-}
+input[type="text"].city-other, #cityOtherInput { min-height: var(--field-h); border-radius: 12px; padding: 10px 12px; }
 
-
-/* === Password eye toggle alignment tweak (Patch #3 · 2025-08-16) === */
-.input--with-eye { position: relative; }
-.input--with-eye input[type="password"],
-.input--with-eye input[data-pwd-is-text="1"],
-input.input--with-eye[type="password"],
-input.input--with-eye[data-pwd-is-text="1"] {
-  padding-right: 44px; /* больше запас, чтобы текст не залезал под кнопку */ 
-}
-.pwd-toggle {
-  width: 24px; height: 24px;   /* чуть компактнее, ровно по центру 44px строки */
-  right: 12px;
-}
-/* В некоторых формах родитель может быть flex — не ломаем layout */
-.input--with-eye .pwd-toggle { pointer-events: auto; }
-
-/* Phone input tweaks (Patch #4) */
+/* Phone input tweaks */
 .phone-mask { letter-spacing: 0.2px; }
 
-
-/* === Field error styles (Foody Patch #5 · 2025-08-16) === */
+/* === Field error styles === */
 input.is-invalid, select.is-invalid, textarea.is-invalid {
   border-color: #EF4444 !important;
   box-shadow: 0 0 0 3px rgba(239,68,68,.15) !important;
 }
-.field-error {
-  display: block;
-  margin-top: 6px;
-  font-size: 12px;
-  line-height: 16px;
-  color: #B91C1C;
-}
-
-
-/* === Eye mobile tap target (Patch #6 · 2025-08-16) === */
-@media (max-width: 480px) {
-  .pwd-toggle { width: 28px; height: 28px; right: 10px; }
-  .input--with-eye input[type="password"],
-  .input--with-eye input[data-pwd-is-text="1"],
-  input.input--with-eye[type="password"],
-  input.input--with-eye[data-pwd-is-text="1"] { padding-right: 48px; }
-}
-/* Keep vertical centering robust even if line-height changes */
-.pwd-toggle { top: 50%; transform: translateY(-50%); }
-
-
-/* === Fancy error highlight (Foody Patch #8 · 2025-08-16) === */
-@keyframes foody-shake {
-  0%, 100% { transform: translateX(0); }
-  20% { transform: translateX(-2px); }
-  40% { transform: translateX(2px); }
-  60% { transform: translateX(-2px); }
-  80% { transform: translateX(1px); }
-}
-.form.shake { animation: foody-shake .28s ease; }
-
-/* Softer invalid background + icon for non-password inputs */
-input.is-invalid:not([type="password"]), select.is-invalid, textarea.is-invalid {
-  background-color: #FEF2F2;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%23EF4444' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='10'/><line x1='12' y1='8' x2='12' y2='12'/><circle cx='12' cy='16' r='1'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  background-size: 18px 18px;
-  padding-right: 44px;
-}
+.field-error { display: block; margin-top: 6px; font-size: 12px; line-height: 16px; color: #B91C1C; }
 /* Keep password field clean (eye lives on the right) */
 input[type="password"].is-invalid { background-color: #FEF2F2; }
 
 /* Disabled button state */
 button:disabled { opacity: .6; cursor: not-allowed; }
-https://foodyweb-production.up.railway.app/web/merchant/
 
-/* Foody UI Final Patch — 2025-08-17 */
-
-/* ========== 1) AUTH: заголовок по центру (точно под v13) ========== */
-section#auth .card .card-title {
-  text-align: center !important;
-  margin: 8px 0 16px !important;
-}
-
-/* ========== 2) AUTH: «Зарегистрироваться» на всю ширину (грид из 2 колонок) ========== */
-#registerForm button[type="submit"],
-#registerForm input[type="submit"],
-#registerForm .btn[type="submit"] {
-  width: 100% !important;
-  display: inline-flex !important;
-  justify-content: center !important;
-  grid-column: 1 / -1 !important;
-  margin-top: 8px;
-  align-self: end;
+/* Foody UI Final Patch — preserved bits */
+/* AUTH: заголовок по центру */
+section#auth .card .card-title { text-align: center !important; margin: 8px 0 16px !important; }
+/* AUTH: submit full-width */
+#registerForm :is(button[type="submit"], input[type="submit"], .btn[type="submit"]) {
+  width: 100% !important; display: inline-flex !important; justify-content: center !important; grid-column: 1 / -1 !important; margin-top: 8px; align-self: end;
 }
 
-/* ========== 3) PASSWORD EYE (CSS-only) — заменяем смайлики на иконку ========== */
-button#toggleLoginPw, button#toggleRegisterPw, button#pwOldToggle, button#pwNewToggle,
-button.pw-toggle, button[data-role="pw-toggle"] {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  margin-left: 6px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  color: transparent; /* скрываем смайлик/текст */
-  font-size: 0;
-  line-height: 0;
-}
-button#toggleLoginPw::before, button#toggleRegisterPw::before, button#pwOldToggle::before, button#pwNewToggle::before,
-button.pw-toggle::before, button[data-role="pw-toggle"]::before {
-  content: "";
-  width: 22px;
-  height: 22px;
-  display: block;
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 22px 22px;
-  /* по умолчанию — закрытый глаз */
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='3' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-/* «Показан пароль» — перечёркнутый глаз (если JS выставляет состояние) */
-button#toggleLoginPw[aria-pressed="true"]::before,
-button#toggleRegisterPw[aria-pressed="true"]::before,
-button#pwOldToggle[aria-pressed="true"]::before,
-button#pwNewToggle[aria-pressed="true"]::before,
-button.pw-toggle[aria-pressed="true"]::before,
-button[data-role="pw-toggle"][aria-pressed="true"]::before,
-button#toggleLoginPw[data-show="true"]::before,
-button#toggleRegisterPw[data-show="true"]::before,
-button#pwOldToggle[data-show="true"]::before,
-button#pwNewToggle[data-show="true"]::before,
-button.pw-toggle[data-show="true"]::before,
-button[data-role="pw-toggle"][data-show="true"]::before,
-button#toggleLoginPw.data-visible::before,
-button#toggleRegisterPw.data-visible::before,
-button#pwOldToggle.data-visible::before,
-button#pwNewToggle.data-visible::before,
-button.pw-toggle.data-visible::before,
-button[data-role="pw-toggle"].data-visible::before,
-button#toggleLoginPw.on::before,
-button#toggleRegisterPw.on::before,
-button#pwOldToggle.on::before,
-button#pwNewToggle.on::before,
-button.pw-toggle.on::before,
-button[data-role="pw-toggle"].on::before {
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 3l18 18' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42M9.88 4.26A10.94 10.94 0 0112 5c6.5 0 10 7 10 7a18.74 18.74 0 01-4.26 5.32M6.1 6.1A18.59 18.59 0 002 12s3.5 7 10 7a10.94 10.94 0 005.74-1.62' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-@media (prefers-color-scheme: dark) {
-  button#toggleLoginPw::before, button#toggleRegisterPw::before, button#pwOldToggle::before, button#pwNewToggle::before,
-  button.pw-toggle::before, button[data-role="pw-toggle"]::before {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='12' cy='12' r='3' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  }
-  button#toggleLoginPw[aria-pressed="true"]::before,
-  button#toggleRegisterPw[aria-pressed="true"]::before,
-  button#pwOldToggle[aria-pressed="true"]::before,
-  button#pwNewToggle[aria-pressed="true"]::before,
-  button.pw-toggle[aria-pressed="true"]::before,
-  button[data-role="pw-toggle"][aria-pressed="true"]::before,
-  button#toggleLoginPw[data-show="true"]::before,
-  button#toggleRegisterPw[data-show="true"]::before,
-  button#pwOldToggle[data-show="true"]::before,
-  button#pwNewToggle[data-show="true"]::before,
-  button.pw-toggle[data-show="true"]::before,
-  button[data-role="pw-toggle"][data-show="true"]::before,
-  button#toggleLoginPw.data-visible::before,
-  button#toggleRegisterPw.data-visible::before,
-  button#pwOldToggle.data-visible::before,
-  button#pwNewToggle.data-visible::before,
-  button.pw-toggle.data-visible::before,
-  button[data-role="pw-toggle"].data-visible::before,
-  button#toggleLoginPw.on::before,
-  button#toggleRegisterPw.on::before,
-  button#pwOldToggle.on::before,
-  button#pwNewToggle.on::before,
-  button.pw-toggle.on::before,
-  button[data-role="pw-toggle"].on::before {
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 3l18 18' stroke='%23fff' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10.58 10.58A3 3 0 0012 15a3 3 0 002.42-4.42M9.88 4.26A10.94 10.94 0 0112 5c6.5 0 10 7 10 7a18.74 18.74 0 01-4.26 5.32M6.1 6.1A18.59 18.59 0 002 12s3.5 7 10 7a10.94 10.94 0 005.74-1.62' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  }
-}
-
-/* ========== 4) PROFILE: кнопки внизу справа у карточек (absolute pin) ========== */
+/* PROFILE: кнопки внизу справа у карточек */
 section#profile .card { position: relative; }
-section#profile .card form { padding-bottom: 72px; } /* чтобы кнопку не перекрывали поля */
-section#profile .card form button[type="submit"],
-section#profile .card form .actions button[type="submit"] {
-  position: absolute !important;
-  right: 20px;
-  bottom: 20px;
-  min-width: 180px;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+section#profile .card form { padding-bottom: 72px; }
+section#profile .card form :is(button[type="submit"], .actions button[type="submit"]) {
+  position: absolute !important; right: 20px; bottom: 20px; min-width: 180px; height: 40px; display: inline-flex; align-items: center; justify-content: center;
 }
 @media (max-width: 520px) {
-  section#profile .card form button[type="submit"],
-  section#profile .card form .actions button[type="submit"] {
-    left: 20px;
-    right: 20px;
-    width: auto;
-  }
-}
-/* Auth title flex-safe fix */
-section#auth .card :is(.card-title,.title,h1,h2,h3){
-  width:100% !important;
-  display:flex !important;
-  justify-content:center !important;
-  text-align:center !important;
-  margin:8px 0 16px !important;
+  section#profile .card form :is(button[type="submit"], .actions button[type="submit"]) { left: 20px; right: 20px; width: auto; }
 }
 
-
-/* === Foody patch: align "Мои офферы" table (mobile-safe) === */
+/* My offers table mobile tuning */
 #offerList .row { 
   grid-template-columns: minmax(140px, 2fr) minmax(72px, .9fr) minmax(72px, .8fr) minmax(88px, .8fr) minmax(160px, 1.2fr) minmax(110px, max-content);
 }
@@ -530,21 +314,7 @@ section#auth .card :is(.card-title,.title,h1,h2,h3){
 #offerList .row .num { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 #offerList .row .actions { display:flex; gap:8px; justify-content:flex-end; flex-wrap: nowrap; }
 #offerList .row .actions .btn { white-space: nowrap; padding: 8px 12px; }
-
 @media (max-width: 480px) {
   #offerList .row { grid-template-columns: 1.6fr .9fr .7fr .8fr 1.1fr minmax(96px, max-content); }
   #offerList .row .actions .btn { padding: 8px 10px; }
 }
-
-/* === Normalize inputs in Profile pane === */
-#profile .form input[type="password"],
-#profile .form input[type="text"],
-#profile .form input[type="tel"],
-#profile .form input[type="email"],
-#profile .form input[type="number"]{ min-height:48px; line-height:1.2; }
-
-#profile .pwd-field > input{ padding-right:44px; }
-#profile .pwd-toggle{ width:32px; height:32px; right:12px; }
-/* === Foody v16 · Password fields compact & aligned === */
-:root{ --pw-field-h: 44px; }
-
