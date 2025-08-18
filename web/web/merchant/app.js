@@ -848,7 +848,7 @@ on('#offerForm','submit', async (e) => {
     showInlineError('#offerError', e2?.message || 'Ошибка при сохранении');
     if (String(e2.message||'').startsWith('401')) activateTab('auth');
   } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Сохранить оффер'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Создать оффер'; }
   }
 });
 const ok = gate(); 
@@ -859,7 +859,7 @@ if (!ok) activateTab('auth');
 })();
 
 
-// Foody patch: make "Сохранить оффер" button full width (failsafe)
+// Foody patch: make "Создать оффер" button full width (failsafe)
 (function(){
   const onReady = (fn)=>{ if (document.readyState==='complete' || document.readyState==='interactive') setTimeout(fn,0);
                           else document.addEventListener('DOMContentLoaded', fn); };
