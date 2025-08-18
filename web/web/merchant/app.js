@@ -49,7 +49,27 @@
     if (rest.length > 8) out += ' ' + rest.slice(8,10);
     return out;
   }
-  function attachPhoneMask(input){
+  // === robust helpers for edit modal (injected) ===
+function q(sel){ return document.querySelector(sel); }
+function pickOne(selectors){
+  for (const s of selectors){ const el = q(s); if (el) return el; }
+  return null;
+}
+function showModalEl(modal){
+  if (!modal) return;
+  if (typeof modal.showModal === 'function') { try { modal.showModal(); return; } catch(_){} }
+  modal.style.display = '';
+  modal.classList.add('open');
+  modal.setAttribute('aria-hidden','false');
+}
+function hideModalEl(modal){
+  if (!modal) return;
+  if (typeof modal.close === 'function') { try { modal.close(); return; } catch(_){} }
+  modal.classList.remove('open');
+  modal.style.display = 'none';
+  modal.setAttribute('aria-hidden','true');
+}
+function attachPhoneMask(input){
     if (!input || input.dataset.maskBound === '1') return;
     input.dataset.maskBound = '1';
     input.type = 'tel'; input.inputMode = 'tel'; input.autocomplete = 'tel';
@@ -141,27 +161,18 @@
       if (!res.ok) {
         const ct = res.headers.get('content-type')||'';
         let msg = `${res.status} ${res.statusText}`;
-        let data = null;
         if (ct.includes('application/json')) {
-          data = await res.json().catch(()=>null);
-          if (data && (data.detail || data.message)) msg = data.detail || data.message || msg;
+          const j = await res.json().catch(()=>null);
+          if (j && (j.detail || j.message)) msg = j.detail || j.message || msg;
         } else {
           const t = await res.text().catch(()=>'');
           if (t) msg += ` — ${t.slice(0,180)}`;
         }
-        const err = new Error(msg);
-        try { err.status = res.status; err.data = data; } catch(_){ }
-        throw err;
+        throw new Error(msg);
       }
       if (raw) return res;
-      if (res.status === 204) return null;
       const ct = res.headers.get('content-type') || '';
-      if (!ct.includes('application/json')) {
-        // empty or non-JSON body
-        const t = await res.text().catch(()=> '');
-        return t || null;
-      }
-      return res.json();
+      return ct.includes('application/json') ? res.json() : res.text();
     } catch (err) {
       if (String(err.message).includes('Failed to fetch')) throw new Error('Не удалось связаться с сервером. Проверьте соединение или CORS.');
       throw err;
@@ -611,7 +622,7 @@ function bindExpirePresets(){
       }
       const editForm = $('#offerEditForm');
       const editCancel = $('#offerEditCancel');
-      if (editCancel) editCancel.addEventListener('click', (ev)=>{ ev.preventDefault(); const m=$('#offerEditModal'); if(m) m.style.display='none'; });
+      if (editCancel) editCancel.addEventListener('click', (ev)=>{ ev.preventDefault(); const m=$('#offerEditModal')||$('#editOfferModal')||$('#editModal'); hideModalEl(m); });
       if (editForm) editForm.addEventListener('submit', async (ev)=>{
         ev.preventDefault();
         const id = $('#editId').value;
@@ -626,7 +637,7 @@ function bindExpirePresets(){
         };
         try{
           await api(`/api/v1/merchant/offers/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
-          const m=$('#offerEditModal'); if(m) m.style.display='none';
+          const m=$('#offerEditModal')||$('#editOfferModal')||$('#editModal'); hideModalEl(m);
           showToast('Сохранено');
           loadOffers();
         }catch(err){ showToast('Не удалось сохранить: '+(err.message||err)); }
