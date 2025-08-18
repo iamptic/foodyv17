@@ -69,6 +69,15 @@
   </style>
 <link href="./foody.pw.css" rel="stylesheet">
 <link href="./offers_actions.css" rel="stylesheet">
+
+<style>
+/* Center the Offer Edit modal without touching rest of design */
+#offerEditModal { position: fixed; inset: 0; display: none; place-items: center; z-index: 60; }
+#offerEditModal._open { display: grid !important; }
+#offerEditModal .modal-dim { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+#offerEditModal .modal-card { position: relative; width: min(640px, 94vw); border-radius: 16px; overflow: hidden; }
+</style>
+
 </head>
 <body>
   <div class="app">
@@ -232,6 +241,9 @@
       </label>
 
       <!-- Срок действия оффера -->
+      <label class="full">Срок годности продукта
+        <input name="best_before" id="editBest" placeholder="YYYY-MM-DD HH:MM">
+      </label>
       <label class="full">Срок действия оффера
         <input name="expires_at" id="expires_at" placeholder="Сегодня 21:00" required>
       </label>
@@ -430,12 +442,10 @@
       <label>Количество, шт
         <input name="qty_total" id="editQty" type="number" min="1" step="1">
       </label>
-      
       <label class="full">Срок годности продукта
-        <input name="best_before" id="editBestBefore" type="datetime-local">
-        <div class="muted small">Будет сохранено и учитываться при проверках.</div>
+        <input name="best_before" id="editBest" placeholder="YYYY-MM-DD HH:MM">
       </label>
-    <label class="full">Срок действия
+      <label class="full">Срок действия
         <input name="expires_at" id="editExpires" placeholder="YYYY-MM-DD HH:MM">
       </label>
       <label class="full">Категория

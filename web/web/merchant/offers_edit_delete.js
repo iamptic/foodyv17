@@ -96,6 +96,15 @@
     root.innerHTML = html;
   }
 
+  
+  function bindCalendars(){
+    if (window.flatpickr){
+      const opts = { enableTime:true, dateFormat:'Y-m-d H:i', time_24hr:true, allowInput:true, locale: (window.flatpickr?.l10ns?.ru || undefined) };
+      const b = document.getElementById('editBest'); if (b && !b._fp) { b._fp = flatpickr(b, opts); }
+      const e = document.getElementById('editExpires'); if (e && !e._fp) { e._fp = flatpickr(e, opts); }
+    }
+  }
+
   function bindActions(){
     const root = qs('#offerList'); if(!root) return;
     root.addEventListener('click', onAction, false);
@@ -109,7 +118,7 @@
     const act = btn.getAttribute('data-action');
     const item = state.items.find(x => String(x.id)===String(id));
     if(act==='edit-offer'){
-      openEdit(item);
+      openEdit(item); bindCalendars();
     } else if(act==='delete-offer'){
       confirmDelete(id);
     }
@@ -125,12 +134,11 @@
     setVal('#editPrice',Number(o.price_cents!=null ? o.price_cents/100 : (o.price||0)) || '');
     setVal('#editQty',  o.qty_total!=null ? o.qty_total : (o.total_qty!=null ? o.total_qty : ''));
     setVal('#editExpires', toLocalView(o.expires_at || o.expires || ''));
-    setVal('#editBestBefore', toLocalView(o.best_before || ''));
     setVal('#editCategory', o.category || 'other');
     setVal('#editDesc', o.description || '');
-    m.style.display='';
+    m.classList.add('_open');
   }
-  function closeEdit(){ const m = qs('#offerEditModal'); if(m) m.style.display='none'; }
+  function closeEdit(){ const m = qs('#offerEditModal'); if(m){ m.classList.remove('_open'); } }
   function setVal(sel, val){ const el = qs(sel); if(el){ el.value = val==null?'':val; } }
 
   function bindEditForm(){
@@ -144,19 +152,28 @@
         original_price: asNumberPrice(qs('#editOld')?.value, 0),
         price: asNumberPrice(qs('#editPrice')?.value, 0),
         qty_total: Number(qs('#editQty')?.value||0) || 0,
+        best_before: toIsoFromLocal(qs('#editBest')?.value||'') || null,
         expires_at: toIsoFromLocal(qs('#editExpires')?.value||'') || null,
         category: String(qs('#editCategory')?.value||'other'),
         description: String(qs('#editDesc')?.value||'').trim()
       };
       try{
-        const base = apiBase().replace(/\/+$/,'');
-        const url = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}`;
-        const res = await fetch(url, {
-          method:'PATCH',
-          headers: { 'Content-Type': 'application/json', 'X-Foody-Key': key() },
-          body: JSON.stringify(payload)
-        });
-        if(!res.ok) throw new Error('HTTP '+res.status);
+        const base = apiBase().replace(/\/+$/, '');
+        const url1 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}`;
+        const url2 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}/`;
+        const url3 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}?restaurant_id=${encodeURIComponent(rid())}`;
+        let ok=false, lastErr=null, resp=null;
+        for (const method of ['PATCH','PUT']){
+          for (const url of [url1,url2,url3]){
+            try{
+              const r = await fetch(url, { method, headers:{ 'Content-Type':'application/json','X-Foody-Key': key() }, body: JSON.stringify(payload) });
+              if (r.ok){ ok=true; resp=r; break; }
+              lastErr = new Error('HTTP '+r.status);
+            }catch(e){ lastErr=e; }
+          }
+          if (ok) break;
+        }
+        if(!ok) throw (lastErr||new Error('save_failed'));
         // Update local item and re-render without flicker
         const u = await res.json().catch(()=>null);
         const idx = state.items.findIndex(x=> String(x.id)===String(id));
@@ -184,7 +201,7 @@
     const btn = qs('#confirmDeleteBtn');
     const onClick = async ()=> { btn.disabled = true; btn.textContent = 'Удаление…'; try{ await doDelete(id); m.style.display='none'; } finally { btn.disabled=false; btn.textContent='Удалить'; btn.removeEventListener('click', onClick); } };
     btn.addEventListener('click', onClick);
-    m.style.display='';
+    m.classList.add('_open');
   }
 
   async function doDelete(id){
@@ -250,6 +267,7 @@
     bindActions();
     bindEditForm();
     hookTab();
+    bindCalendars();
     load();
   });
 })();
