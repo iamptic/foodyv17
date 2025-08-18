@@ -1,273 +1,180 @@
+// web/web/merchant/js/offers_edit_delete.js
+// Minimal, careful enhancements: center modal, open edit with auto-fill, save via PATCH, and no reloads.
+// Assumes presence of #offerList, #offerEditModal, #offerEditForm and fields with ids used below.
 
-/*! Foody Offers v17 — stable list + Edit/Delete (PATCH/DELETE) without flicker */
-(function(){
-  function ready(fn){ if(document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
-  const qs = (s,r=document)=>r.querySelector(s);
-  const qsa = (s,r=document)=>Array.from(r.querySelectorAll(s));
-  const apiBase = ()=> (window.__FOODY__ && window.__FOODY__.FOODY_API) || window.foodyApi || '';
-  const rid = ()=> { try{ return localStorage.getItem('foody_restaurant_id') || ''; }catch(_){ return ''; } };
-  const key = ()=> { try{ return localStorage.getItem('foody_key') || ''; }catch(_){ return ''; } };
-  const fmt = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
-  const state = { items: [], abort: null, loading:false };
+(function () {
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+  const FOODY_API = (window.__FOODY__ && window.__FOODY__.FOODY_API) || window.foodyApi || 'https://foodyback-production.up.railway.app';
 
-  function moneyRub(v){
-    const n = Number(v||0);
-    return fmt.format(Math.round(n)) + ' ₽';
+  const state = {
+    rid: localStorage.getItem('foody_restaurant_id') || localStorage.getItem('restaurant_id') || '',
+    key: localStorage.getItem('foody_key') || localStorage.getItem('foody_api_key') || ''
+  };
+
+  const els = {
+    list: $('#offerList'),
+    modal: $('#offerEditModal'),
+    form:  $('#offerEditForm'),
+    btnCancel: $('#offerEditCancel'),
+    fields: {
+      id:    $('#editId'),
+      title: $('#editTitle'),
+      old:   $('#editOld'),
+      price: $('#editPrice'),
+      qty:   $('#editQty'),
+      best:  $('#editBest'),
+      exp:   $('#editExpires'),
+      cat:   $('#editCategory'),
+      desc:  $('#editDesc')
+    }
+  };
+
+  function toast(msg){ try{ window.toast?.(msg); }catch(_) { try{ window.showToast?.(msg); }catch(_){ alert(msg); } } }
+
+  // --- Modal helpers ---
+  function showModal() {
+    if (!els.modal) return;
+    els.modal.classList.add('_open');
+    // scroll lock
+    document.documentElement.style.overflow = 'hidden';
   }
-  function asNumberPrice(oField, fallback){
-    const n = Number(oField);
-    return Number.isFinite(n) ? n : (Number(fallback)||0);
+  function hideModal() {
+    if (!els.modal) return;
+    els.modal.classList.remove('_open');
+    document.documentElement.style.overflow = '';
   }
-  function toLocalView(iso){
-    if(!iso) return '';
-    try{
+
+  // --- Utilities ---
+  function dtToLocalInput(iso){
+    if (!iso) return '';
+    try {
       const d = new Date(iso);
-      const pad = n=> String(n).padStart(2,'0');
-      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    }catch(_){ return ''; }
+      const p = (n)=>String(n).padStart(2,'0');
+      return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    } catch(_) { return ''; }
   }
-  function toIsoFromLocal(str){
-    if(!str) return null;
-    // Expect "YYYY-MM-DD HH:MM"
-    const m = String(str).trim().match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
-    if(!m) return null;
+  function localToIso(str){
+    if (!str) return null;
+    const m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/);
+    if (!m) return null;
     const [_,Y,M,D,h,mn] = m.map(Number);
     const dt = new Date(Y, M-1, D, h, mn);
-    // Convert to UTC ISO, keep minutes, seconds = 00
     return new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().replace(/\.\d{3}Z$/,'Z');
   }
 
-  function skeleton(show=true){
-    const root = qs('#offerList'); if(!root) return;
-    if(show){
-      root.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
+  async function api(path, opt={}){
+    const url = `${FOODY_API}${path}`;
+    const h = opt.headers ? {...opt.headers} : {};
+    if (state.key) h['X-Foody-Key'] = state.key;
+    if (opt.body && !h['Content-Type']) h['Content-Type'] = 'application/json';
+    const resp = await fetch(url, { ...opt, headers: h });
+    if (resp.status === 204) return null;
+    const ct = resp.headers.get('content-type')||'';
+    const data = ct.includes('application/json') ? await resp.json().catch(()=>null) : await resp.text().catch(()=>'');
+    if (!resp.ok) {
+      const msg = (data && (data.detail || data.message)) || `${resp.status} ${resp.statusText}`;
+      throw new Error(msg);
     }
+    return data;
   }
 
-  async function fetchOffers(){
-    const base = apiBase().replace(/\/+$/,'');
-    const rID = rid(), k = key();
-    if(!base || !rID || !k) return [];
-    const url = `${base}/api/v1/merchant/offers?restaurant_id=${encodeURIComponent(rID)}`;
-    const ctl = new AbortController();
-    if (state.abort) { try{ state.abort.abort(); }catch(_){ } }
-    state.abort = ctl;
-    const res = await fetch(url, { headers:{ 'X-Foody-Key': k }, signal: ctl.signal });
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    const data = await res.json();
-    return Array.isArray(data) ? data : (data.items || []);
+  // Fetch offers and find by id (safe if no local cache)
+  async function getOfferById(id){
+    const list = await api(`/api/v1/merchant/offers?restaurant_id=${encodeURIComponent(state.rid)}`);
+    const arr = Array.isArray(list) ? list : (list?.items || list?.results || []);
+    return arr.find(o => String(o.id) === String(id)) || { id };
   }
 
-  function computeDiscount(price, original){
-    const p = Number(price||0), o = Number(original||0);
-    if (p>0 && o>0 && p<o) return Math.round((1 - p/o)*100);
-    return 0;
+  function fillForm(o){
+    els.fields.id && (els.fields.id.value = o.id ?? '');
+    els.fields.title && (els.fields.title.value = o.title ?? '');
+    els.fields.old && (els.fields.old.value = (o.original_price_cents!=null ? (o.original_price_cents/100) : (o.original_price ?? '')) || '');
+    els.fields.price && (els.fields.price.value = (o.price_cents!=null ? (o.price_cents/100) : (o.price ?? '')) || '');
+    els.fields.qty && (els.fields.qty.value = (o.qty_total ?? o.total_qty ?? ''));
+    els.fields.exp && (els.fields.exp.value = o.expires_at ? dtToLocalInput(o.expires_at) : (o.expires ?? ''));
+    els.fields.cat && (els.fields.cat.value = o.category || 'other');
+    els.fields.desc && (els.fields.desc.value = o.description || '');
+    // best_before (если присутствует в DOM и приходит от API)
+    els.fields.best && (els.fields.best.value = o.best_before ? dtToLocalInput(o.best_before) : (o.best || ''));
   }
 
-  function render(items){
-    const root = qs('#offerList'); if(!root) return;
-    if(!Array.isArray(items) || items.length===0){
-      root.innerHTML = '<div class="hint">Пока нет офферов</div>';
-      return;
-    }
-    // header
-    let html = `<div class="row head">
-      <div>Название</div><div>Цена</div><div>Скидка</div><div>Остаток</div><div>Истекает</div><div></div>
-    </div>`;
-    html += items.map(o=>{
-      const price = o.price_cents!=null ? o.price_cents/100 : (o.price!=null ? Number(o.price) : 0);
-      const old   = o.original_price_cents!=null ? o.original_price_cents/100 : (o.original_price!=null ? Number(o.original_price) : 0);
-      const disc  = computeDiscount(price, old);
-      const qtyL  = (o.qty_left!=null ? o.qty_left : (o.left_qty!=null ? o.left_qty : '—'));
-      const qtyT  = (o.qty_total!=null ? o.qty_total : (o.total_qty!=null ? o.total_qty : '—'));
-      const expires = o.expires_at || o.expires || null;
-      return `<div class="row" data-offer-id="${o.id}">
-        <div>${escapeHTML(o.title || '—')}</div>
-        <div>${price? moneyRub(price):'—'}</div>
-        <div>${disc? '−'+disc+'%':'—'}</div>
-        <div>${qtyL} / ${qtyT}</div>
-        <div>${expires ? escapeHTML(toLocalView(expires)) : '—'}</div>
-        <div class="actions" role="group" aria-label="Действия по офферу">
-          <button class="btn btn-ghost" data-action="edit-offer">Редактировать</button>
-          <button class="btn btn-danger" data-action="delete-offer">Удалить</button>
-        </div>
-      </div>`;
-    }).join('');
-    root.innerHTML = html;
+  async function openEdit(id){
+    const data = await getOfferById(id);
+    fillForm(data);
+    showModal();
   }
 
-  
-  function bindCalendars(){
-    if (window.flatpickr){
-      const opts = { enableTime:true, dateFormat:'Y-m-d H:i', time_24hr:true, allowInput:true, locale: (window.flatpickr?.l10ns?.ru || undefined) };
-      const b = document.getElementById('editBest'); if (b && !b._fp) { b._fp = flatpickr(b, opts); }
-      const e = document.getElementById('editExpires'); if (e && !e._fp) { e._fp = flatpickr(e, opts); }
-    }
-  }
+  async function onSave(ev){
+    ev.preventDefault();
+    const id = els.fields.id?.value;
+    if (!id) return;
 
-  function bindActions(){
-    const root = qs('#offerList'); if(!root) return;
-    root.addEventListener('click', onAction, false);
-  }
+    const payload = {
+      title: (els.fields.title?.value || '').trim(),
+      original_price: Number(els.fields.old?.value || 0) || undefined,
+      price: Number(els.fields.price?.value || 0) || undefined,
+      qty_total: Number(els.fields.qty?.value || 0) || undefined,
+      expires_at: localToIso(els.fields.exp?.value || '') || undefined,
+      category: els.fields.cat?.value || undefined,
+      description: (els.fields.desc?.value || '').trim() || undefined,
+      best_before: localToIso(els.fields.best?.value || '') || undefined
+    };
 
-  async function onAction(e){
-    const btn = e.target.closest('[data-action]'); if(!btn) return;
-    e.preventDefault(); e.stopPropagation();
-    const row = btn.closest('.row'); if(!row) return;
-    const id = row.getAttribute('data-offer-id'); if(!id) return;
-    const act = btn.getAttribute('data-action');
-    const item = state.items.find(x => String(x.id)===String(id));
-    if(act==='edit-offer'){
-      openEdit(item); bindCalendars();
-    } else if(act==='delete-offer'){
-      confirmDelete(id);
-    }
-  }
+    // remove undefineds
+    Object.keys(payload).forEach(k => { if (payload[k] === undefined || payload[k] === null || payload[k] === '') delete payload[k]; });
 
-  function openEdit(o){
-    if(!o) return;
-    const m = qs('#offerEditModal'); if(!m) return;
-    // Fill fields
-    setVal('#editId', o.id);
-    setVal('#editTitle', o.title || '');
-    setVal('#editOld',  Number(o.original_price_cents!=null ? o.original_price_cents/100 : (o.original_price||0)) || '');
-    setVal('#editPrice',Number(o.price_cents!=null ? o.price_cents/100 : (o.price||0)) || '');
-    setVal('#editQty',  o.qty_total!=null ? o.qty_total : (o.total_qty!=null ? o.total_qty : ''));
-    setVal('#editExpires', toLocalView(o.expires_at || o.expires || ''));
-    setVal('#editCategory', o.category || 'other');
-    setVal('#editDesc', o.description || '');
-    m.classList.add('_open');
-  }
-  function closeEdit(){ const m = qs('#offerEditModal'); if(m){ m.classList.remove('_open'); } }
-  function setVal(sel, val){ const el = qs(sel); if(el){ el.value = val==null?'':val; } }
-
-  function bindEditForm(){
-    const form = qs('#offerEditForm'); if(!form) return;
-    const cancel = qs('#offerEditCancel'); if(cancel) cancel.addEventListener('click', function(ev){ ev.preventDefault(); closeEdit(); });
-    form.addEventListener('submit', async function(ev){
-      ev.preventDefault();
-      const id = String(qs('#editId')?.value||'').trim();
-      const payload = {
-        title: String(qs('#editTitle')?.value||'').trim(),
-        original_price: asNumberPrice(qs('#editOld')?.value, 0),
-        price: asNumberPrice(qs('#editPrice')?.value, 0),
-        qty_total: Number(qs('#editQty')?.value||0) || 0,
-        best_before: toIsoFromLocal(qs('#editBest')?.value||'') || null,
-        expires_at: toIsoFromLocal(qs('#editExpires')?.value||'') || null,
-        category: String(qs('#editCategory')?.value||'other'),
-        description: String(qs('#editDesc')?.value||'').trim()
-      };
-      try{
-        const base = apiBase().replace(/\/+$/, '');
-        const url1 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}`;
-        const url2 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}/`;
-        const url3 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}?restaurant_id=${encodeURIComponent(rid())}`;
-        let ok=false, lastErr=null, resp=null;
-        for (const method of ['PATCH','PUT']){
-          for (const url of [url1,url2,url3]){
-            try{
-              const r = await fetch(url, { method, headers:{ 'Content-Type':'application/json','X-Foody-Key': key() }, body: JSON.stringify(payload) });
-              if (r.ok){ ok=true; resp=r; break; }
-              lastErr = new Error('HTTP '+r.status);
-            }catch(e){ lastErr=e; }
-          }
-          if (ok) break;
-        }
-        if(!ok) throw (lastErr||new Error('save_failed'));
-        // Update local item and re-render without flicker
-        const u = await res.json().catch(()=>null);
-        const idx = state.items.findIndex(x=> String(x.id)===String(id));
-        if(idx>-1){
-          state.items[idx] = Object.assign({}, state.items[idx], payload, u||{});
-        }
-        render(state.items);
-        closeEdit();
-        toast('Сохранено');
-      }catch(err){
-        console.error(err);
-        toast('Не удалось сохранить: '+err.message);
+    try {
+      const updated = await api(`/api/v1/merchant/offers/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
+      // Patch row in DOM (no full reload)
+      const row = els.list?.querySelector(`.row[data-offer-id="${id}"]`);
+      if (row && updated) {
+        const price = (updated.price_cents!=null) ? (updated.price_cents/100) : (updated.price ?? 0);
+        const old   = (updated.original_price_cents!=null) ? (updated.original_price_cents/100) : (updated.original_price ?? 0);
+        const disc  = old>0 ? Math.round((1 - price/old)*100) : 0;
+        const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+        row.children[0].textContent = updated.title || '';
+        row.children[1].textContent = Number(price).toFixed(2);
+        row.children[2].textContent = disc ? `-${disc}%` : '—';
+        row.children[3].textContent = `${updated.qty_left ?? '—'} / ${updated.qty_total ?? '—'}`;
+        row.children[4].textContent = updated.expires_at ? fmt.format(new Date(updated.expires_at)) : '—';
       }
+      hideModal();
+      toast('Сохранено');
+    } catch (e) {
+      toast('Не удалось сохранить: ' + (e.message || e));
+    }
+  }
+
+  function onCancel(ev){ ev?.preventDefault?.(); hideModal(); }
+
+  function onBackdropClick(ev){
+    if (!els.modal) return;
+    if (ev.target && ev.target.classList && ev.target.classList.contains('modal-dim')) hideModal();
+  }
+
+  // Delegation: edit buttons
+  function bindEdit(){
+    if (!els.list || els.list._editBound) return;
+    els.list._editBound = true;
+    els.list.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action="edit-offer"], .btn-edit-offer');
+      if (!btn) return;
+      const row = btn.closest('[data-offer-id], .row');
+      const id = btn.dataset.id || row?.getAttribute('data-offer-id');
+      if (!id) return;
+      e.preventDefault();
+      openEdit(id);
     });
   }
 
-  function confirmDelete(id){
-    // Simple confirm modal reuse: use existing delete modal if present, else native confirm
-    const m = qs('#deleteOfferModal');
-    if(!m){
-      if(confirm('Удалить оффер?')) doDelete(id);
-      return;
-    }
-    m.querySelector('[data-close]')?.addEventListener('click', ()=> m.style.display='none', { once:true });
-    const btn = qs('#confirmDeleteBtn');
-    const onClick = async ()=> { btn.disabled = true; btn.textContent = 'Удаление…'; try{ await doDelete(id); m.style.display='none'; } finally { btn.disabled=false; btn.textContent='Удалить'; btn.removeEventListener('click', onClick); } };
-    btn.addEventListener('click', onClick);
-    m.classList.add('_open');
+  function init(){
+    bindEdit();
+    els.form && els.form.addEventListener('submit', onSave);
+    els.btnCancel && els.btnCancel.addEventListener('click', onCancel);
+    els.modal && els.modal.addEventListener('click', onBackdropClick);
   }
 
-  async function doDelete(id){
-    try{
-      const base = apiBase().replace(/\/+$/,'');
-      const url1 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}`;
-      const url2 = `${base}/api/v1/merchant/offers/${encodeURIComponent(id)}?restaurant_id=${encodeURIComponent(rid())}`;
-      let ok = false, lastErr = null;
-      for (const url of [url1, url2]){
-        try{
-          const res = await fetch(url, { method:'DELETE', headers: { 'X-Foody-Key': key() } });
-          if (res.ok){ ok = true; break; }
-          if (res.status===404){ ok = true; break; } // мягкая обработка 404
-          lastErr = new Error('HTTP '+res.status);
-        }catch(e){ lastErr = e; }
-      }
-      if(!ok && lastErr) throw lastErr;
-      // remove locally
-      state.items = state.items.filter(x=> String(x.id)!==String(id));
-      render(state.items);
-      toast('Оффер удалён');
-    }catch(err){
-      console.error(err);
-      toast('Не удалось удалить: '+err.message);
-    }
-  }
-
-  async function load(){
-    // Avoid flashing: keep current DOM until new data arrives
-    if(state.loading) return;
-    state.loading = true;
-    try{
-      skeleton(state.items.length===0);
-      const items = await fetchOffers();
-      state.items = items;
-      render(items);
-    }catch(err){
-      console.error(err);
-      if(!state.items.length){
-        const root = qs('#offerList'); if(root) root.innerHTML = '<div class="hint">Не удалось загрузить</div>';
-      }
-    }finally{
-      state.loading = false;
-    }
-  }
-
-  function hookTab(){
-    document.addEventListener('click', function(e){
-      const t = e.target.closest('[data-tab="offers"]'); if(!t) return;
-      setTimeout(load, 80);
-    }, true);
-  }
-
-  function toast(msg){
-    const n = document.createElement('div');
-    n.textContent = msg;
-    n.style.cssText='position:fixed;right:16px;bottom:16px;background:#111;padding:10px 14px;border-radius:10px;color:#fff;z-index:3000';
-    document.body.appendChild(n); setTimeout(()=>n.remove(),2400);
-  }
-  function escapeHTML(s){ return String(s||'').replace(/[&<>\"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',\"'\":'&#39;' }[c])); }
-
-  ready(function(){
-    bindActions();
-    bindEditForm();
-    hookTab();
-    bindCalendars();
-    load();
-  });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
 })();
