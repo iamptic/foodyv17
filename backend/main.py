@@ -463,6 +463,134 @@ async def create_offer(payload: OfferCreate, request: Request):
                 )
         return {"id": row["id"]}
 
+# --- PATCH/DELETE for offers (additive, safe) ---
+class OfferUpdate(BaseModel):
+    title: Optional[str] = None
+    price: Optional[float] = None
+    original_price: Optional[float] = None
+    qty_total: Optional[int] = None
+    qty_left: Optional[int] = None
+    expires_at: Optional[str] = None  # ISO string
+    image_url: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+
+@app.patch("/api/v1/merchant/offers/{offer_id}")
+async def update_offer(offer_id: int, payload: OfferUpdate = Body(...), request: Request = None):
+    api_key = _get_api_key(request) if request else ""
+    async with _pool.acquire() as conn:
+        # get owning restaurant
+        offer_row = await conn.fetchrow("SELECT id, restaurant_id, qty_total, qty_left FROM offers WHERE id=$1", offer_id)
+        if not offer_row:
+            raise HTTPException(status_code=404, detail="offer not found")
+        restaurant_id = int(offer_row["restaurant_id"] or 0)
+        await _require_auth(conn, restaurant_id, api_key)
+
+        # columns present in table
+        cols = await conn.fetch("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name='offers' AND table_schema=current_schema()
+        """)
+        colset = {r["column_name"] for r in cols}
+
+        data = payload.dict(exclude_unset=True)
+
+        # Consistency for price/original_price and *_cents if columns exist
+        updates = {}
+
+        if "title" in data: updates["title"] = data["title"]
+        if "description" in data: updates["description"] = data["description"]
+        if "category" in data: updates["category"] = data["category"]
+        if "image_url" in data: updates["image_url"] = (data["image_url"] or "").strip()
+
+        # numbers
+        if "price" in data and data["price"] is not None:
+            price_val = float(data["price"])
+            if "price" in colset:
+                updates["price"] = price_val
+            if "price_cents" in colset:
+                updates["price_cents"] = int(round(price_val * 100))
+
+        if "original_price" in data and data["original_price"] is not None:
+            orig_val = float(data["original_price"])
+            if "original_price" in colset:
+                updates["original_price"] = orig_val
+            if "original_price_cents" in colset:
+                updates["original_price_cents"] = int(round(orig_val * 100))
+
+        # qty / validation
+        current_qty_total = offer_row["qty_total"]
+        current_qty_left = offer_row["qty_left"]
+        new_qty_total = data.get("qty_total", current_qty_total)
+        new_qty_left  = data.get("qty_left", current_qty_left)
+        if new_qty_total is not None and new_qty_left is not None and int(new_qty_left) > int(new_qty_total):
+            raise HTTPException(status_code=400, detail="qty_left cannot be greater than qty_total")
+        if "qty_total" in data and "qty_total" in colset:
+            updates["qty_total"] = int(new_qty_total)
+        if "qty_left" in data and "qty_left" in colset:
+            updates["qty_left"] = int(new_qty_left)
+
+        # expires_at
+        if "expires_at" in data:
+            parsed = _parse_expires_at(data["expires_at"]) if data["expires_at"] else None
+            updates["expires_at"] = parsed
+
+        # Build dynamic UPDATE limited to existing columns
+        set_parts = []
+        values = []
+        idx = 1
+        for k, v in updates.items():
+            if k not in colset:
+                continue
+            set_parts.append(f"{k} = ${idx}")
+            values.append(v)
+            idx += 1
+        if not set_parts:
+            # nothing to update; return current row
+            row = await conn.fetchrow(
+                """SELECT id, restaurant_id, title, price, price_cents, original_price, original_price_cents,
+                          qty_total, qty_left, expires_at, image_url, category, description
+                   FROM offers WHERE id=$1""",
+                offer_id
+            )
+            d = dict(row)
+            if d.get("expires_at"):
+                d["expires_at"] = d["expires_at"].astimezone(timezone.utc).isoformat()
+            return d
+
+        values.append(offer_id)
+        query = f"UPDATE offers SET {', '.join(set_parts)} WHERE id = ${idx}"
+        await conn.execute(query, *values)
+
+        # return updated object in same shape used by list endpoint
+        row = await conn.fetchrow(
+            """SELECT id, restaurant_id, title, price_cents, original_price_cents, qty_total, qty_left,
+                      expires_at, image_url, category, description
+               FROM offers WHERE id=$1""",
+            offer_id
+        )
+        if not row:
+            raise HTTPException(status_code=404, detail="offer not found after update")
+        d = dict(row)
+        if d.get("expires_at"):
+            d["expires_at"] = d["expires_at"].astimezone(timezone.utc).isoformat()
+        return d
+
+@app.delete("/api/v1/merchant/offers/{offer_id}", status_code=204)
+async def delete_offer(offer_id: int, request: Request = None):
+    api_key = _get_api_key(request) if request else ""
+    async with _pool.acquire() as conn:
+        offer_row = await conn.fetchrow("SELECT id, restaurant_id FROM offers WHERE id=$1", offer_id)
+        if not offer_row:
+            raise HTTPException(status_code=404, detail="offer not found")
+        restaurant_id = int(offer_row["restaurant_id"] or 0)
+        await _require_auth(conn, restaurant_id, api_key)
+
+        await conn.execute("DELETE FROM offers WHERE id=$1", offer_id)
+        # 204 No Content
+        return
+# --- end PATCH/DELETE block ---
+
 @app.get("/")
 async def root():
     return {"ok": True, "service": APP_NAME}
