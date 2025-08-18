@@ -318,3 +318,34 @@ section#profile .card form :is(button[type="submit"], .actions button[type="subm
   #offerList .row { grid-template-columns: 1.6fr .9fr .7fr .8fr 1.1fr minmax(96px, max-content); }
   #offerList .row .actions .btn { padding: 8px 10px; }
 }
+
+
+/* ===== Offers tab polish (v17) ===== */
+#offerList { display: grid; gap: 8px; }
+#offerList .row { 
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) minmax(72px, .9fr) minmax(72px, .8fr) minmax(96px, .9fr) minmax(160px, 1.2fr) minmax(140px, max-content);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #12171e;
+}
+#offerList .row.head {
+  background: transparent;
+  border: 0;
+  padding: 4px 8px;
+  color: var(--subtext);
+}
+#offerList .row .actions { display: inline-flex; gap: 8px; justify-content: flex-end; }
+#offerList .row .btn.btn-danger { background: linear-gradient(180deg, rgba(242,99,99,.18), rgba(242,99,99,.10)); border: 1px solid rgba(242,99,99,.35); }
+#offerList .row:hover { border-color: rgba(74,181,241,.35); background: #141a22; }
+
+@media (max-width: 560px) {
+  #offerList .row { 
+    grid-template-columns: 1.5fr .8fr .7fr 1fr 1.2fr minmax(120px, max-content);
+    gap: 8px;
+  }
+  #offerList .row.head { display: none; }
+}

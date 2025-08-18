@@ -32,7 +32,7 @@
         <div>${disc?`-${disc}%`:'—'}</div>
         <div>${o.qty_left ?? '—'} / ${o.qty_total ?? '—'}</div>
         <div>${fmtDate(o.expires_at)}</div>
-        <div class="actions">
+        <div class="actions" role="group" aria-label="Действия по офферу">
           <button class="btn btn-ghost" data-action="edit-offer">Редактировать</button>
           <button class="btn btn-danger" data-action="delete-offer">Удалить</button>
         </div>
@@ -69,11 +69,11 @@
       const row = btn.closest('.row'); if(!row) return;
       const id = row.getAttribute('data-offer-id'); if(!id) return;
       const item = items.find(x => String(x.id) === String(id));
-      if(act==='edit-offer'){ openEdit(item); return; }
+      if(act==='edit-offer'){ goEdit(item); return; }
       if(act==='delete-offer'){
         if(!confirm('Удалить оффер «'+(item?.title||'')+'»?')) return;
         try{
-          const res = await fetch(apiBase().replace(/\/+$/,'') + '/api/v1/merchant/offers/'+id + '?restaurant_id=' + encodeURIComponent(rid()), {
+          const res = await fetch(apiBase().replace(/\/+$/,'') + '/api/v1/merchant/offers/'+id, {
             method:'DELETE', headers:{ 'X-Foody-Key': key() }
           });
           if(!res.ok) throw new Error('HTTP '+res.status);
@@ -99,7 +99,7 @@
         description: qs('#editDesc').value || null,
       };
       try{
-        const res = await fetch(apiBase().replace(/\/+$/,'') + '/api/v1/merchant/offers/'+id + '?restaurant_id=' + encodeURIComponent(rid()), {
+        const res = await fetch(apiBase().replace(/\/+$/,'') + '/api/v1/merchant/offers/'+id, {
           method:'PUT',
           headers: { 'Content-Type':'application/json', 'X-Foody-Key': key() },
           body: JSON.stringify(payload)
@@ -211,3 +211,42 @@ async function load(){
     try { new MutationObserver(function(){ if(visible(qs('#offerList'))) load(); }).observe(document.body, {childList:true, subtree:true}); }catch(_){}
   });
 })();
+
+
+
+function goEdit(o){
+  try {
+    if (window.activateTab) activateTab('create');
+    const fill = () => {
+      const $ = (s,r=document)=>r.querySelector(s);
+      const title = $('input[name="title"]') || $('#title') || $('#offerTitle');
+      if (title) title.value = (o.title||'');
+      const oldP = $('input[name="original_price"]') || $('#offerOldPrice');
+      const newP = $('input[name="price"]') || $('#offerPrice');
+      const qty  = $('input[name="qty_total"]') || $('#offerQty');
+      const exp  = $('input[name="expires_at"]') || $('#expires_at');
+      const to2 = (v)=> (v==null? '' : (Math.round(Number(v)*100)/100).toString());
+      const fromCents = (c)=> (c!=null ? (Number(c)/100) : null);
+      const price = (o.price!=null ? Number(o.price) : fromCents(o.price_cents));
+      const old   = (o.original_price!=null ? Number(o.original_price) : fromCents(o.original_price_cents));
+      if (oldP) oldP.value = (old!=null ? to2(old) : '');
+      if (newP) newP.value = (price!=null ? to2(price) : '');
+      if (qty)  qty.value = (o.qty_total!=null ? o.qty_total : (o.qty||o.qty_left||1));
+      if (exp && o.expires_at) {
+        try { const dt = new Date(o.expires_at);
+          const iso = new Date(dt.getTime() - dt.getTimezoneOffset()*60000).toISOString().slice(0,16);
+          exp.value = iso;
+        } catch(_){}
+      }
+      const banner = $('#createEditBanner') || document.createElement('div');
+      banner.id = 'createEditBanner';
+      banner.className = 'hint';
+      banner.textContent = 'Режим редактирования: измените поля и сохраните. (ID ' + o.id + ')';
+      const form = $('#create .form') || $('#offerForm') || $('#createForm');
+      if (form && !$('#createEditBanner')) form.prepend(banner);
+    };
+    setTimeout(fill, 50);
+    setTimeout(fill, 250);
+    setTimeout(fill, 800);
+  } catch(e){ console.warn('goEdit failed', e); }
+}
