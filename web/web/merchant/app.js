@@ -141,18 +141,27 @@
       if (!res.ok) {
         const ct = res.headers.get('content-type')||'';
         let msg = `${res.status} ${res.statusText}`;
+        let data = null;
         if (ct.includes('application/json')) {
-          const j = await res.json().catch(()=>null);
-          if (j && (j.detail || j.message)) msg = j.detail || j.message || msg;
+          data = await res.json().catch(()=>null);
+          if (data && (data.detail || data.message)) msg = data.detail || data.message || msg;
         } else {
           const t = await res.text().catch(()=>'');
           if (t) msg += ` — ${t.slice(0,180)}`;
         }
-        throw new Error(msg);
+        const err = new Error(msg);
+        try { err.status = res.status; err.data = data; } catch(_){ }
+        throw err;
       }
       if (raw) return res;
+      if (res.status === 204) return null;
       const ct = res.headers.get('content-type') || '';
-      return ct.includes('application/json') ? res.json() : res.text();
+      if (!ct.includes('application/json')) {
+        // empty or non-JSON body
+        const t = await res.text().catch(()=> '');
+        return t || null;
+      }
+      return res.json();
     } catch (err) {
       if (String(err.message).includes('Failed to fetch')) throw new Error('Не удалось связаться с сервером. Проверьте соединение или CORS.');
       throw err;
