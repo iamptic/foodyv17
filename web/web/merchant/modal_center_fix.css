@@ -1,4 +1,0 @@
-/* Minimal modal centering — safe to append to your existing CSS */
-.modal{position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.55);}
-.modal.open{display:flex}
-.modal .modal-card{max-height:88vh; overflow:auto}
