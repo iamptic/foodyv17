@@ -1,3 +1,4 @@
+function parseMaybeDate(x){try{return x?new Date(x):null}catch(_){return null}}
 (() => {
   const $ = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
@@ -94,7 +95,8 @@
       if (tab === 'create') initCreateTab();
     } catch (e) { console.warn('activateTab failed', e); }
   }
-  on('#tabs','click', (e) => { const btn = e.target.closest('.seg-btn'); if (btn?.dataset.tab) activateTab(btn.dataset.tab); });
+  on('#tabs','click', (e) => { const btn = e.target.closest('.seg-btn'); if (btn?.dataset.tab) activateTab(btn.dataset.tab);
+try{ if ((arguments[0]||'')==='dashboard') refreshDashboard(); }catch(_){} });
   on('.bottom-nav','click', (e) => { const btn = e.target.closest('.nav-btn'); if (btn?.dataset.tab) activateTab(btn.dataset.tab); });
 
   function gate(){

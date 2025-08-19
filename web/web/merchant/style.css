@@ -497,3 +497,26 @@ select.nice-select{
   background-repeat:no-repeat; background-position:right 10px center; background-size:18px;
 }
 select.nice-select:focus{ outline:0; border-color:#334155; box-shadow:0 0 0 3px rgba(74,181,241,.15); }
+
+/* center city modal */
+#cityModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.5);z-index:100}
+#cityModal._open{display:flex}
+#cityModal .dialog{width:min(520px,96vw);background:#0f172a;border:1px solid rgba(255,255,255,.08);border-radius:16px;box-shadow:0 20px 80px rgba(0,0,0,.35);padding:16px}
+
+
+/* -- uniform fields for offer forms -- */
+:root { --field-h: 44px; }
+.form-offer input[type="text"],
+.form-offer input[type="number"],
+.form-offer input[type="tel"],
+.form-offer input[type="password"],
+.form-offer input[type="datetime-local"],
+.form-offer select {
+  height: var(--field-h);
+  line-height: calc(var(--field-h) - 2px);
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+.form-offer .segmented .seg-btn,
+.form-offer button.btn { height: var(--field-h); }
+.form-offer textarea { min-height: 96px; line-height: 1.35; padding: 10px 12px; }
