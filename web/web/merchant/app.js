@@ -587,114 +587,32 @@ function renderOfferCards(items){
   root.innerHTML = `<div id="offerCards">${list}</div>`;
 }
 function renderOffers(items){
-    const root = $('#offerList'); if (!root) return;
-    if (!Array.isArray(items) || items.length === 0) { root.innerHTML = '<div class="hint">Пока нет офферов</div>'; return; }
-    const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
-    const f = getOfferFilter(); const rows = items.filter(o => f==="active" ? isOfferActive(o) : !isOfferActive(o)).map(o => {
-      const price = o.price_cents!=null ? o.price_cents/100 : (o.price!=null ? Number(o.price) : 0);
-      const old   = o.original_price_cents!=null ? o.original_price_cents/100 : (o.original_price!=null ? Number(o.original_price) : 0);
-      const disc = old>0 ? Math.round((1 - price/old)*100) : 0;
-      const exp = o.expires_at ? fmt.format(new Date(o.expires_at)) : '—';
-      return `<div class="row" data-offer-id="${o.id}">
-        <div>${o.title || '—'}</div>
-        <div>${price.toFixed(2)}</div>
-        <div>${disc?`-${disc}%`:'—'}</div>
-        <div>${o.qty_left ?? '—'} / ${o.qty_total ?? '—'}</div>
-        <div>${exp}</div>
-        <div class="actions"><button class="btn btn-ghost" data-action="edit-offer">Редактировать</button><button class="btn btn-danger" data-action="delete">Удалить</button></div>
-      </div>`;
-    }).join('');
-    if (window.matchMedia('(max-width: 640px)').matches){ return renderOfferCards(items); }
-    const head = `<div class="row head"><div>Название</div><div>Цена</div><div>Скидка</div><div>Остаток</div><div>До</div><div></div></div>`;
-    root.innerHTML = head + rows;
-    // bind delete (delegated)
-    if (!root.dataset.deleteBound){
-      root.dataset.deleteBound = '1';
-      
-      // delegated edit
-      root.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action="edit-offer"]'); if (!btn) return;
-        const row = btn.closest('.row'); const id = row && row.getAttribute('data-offer-id'); if (!id) return;
-        // find item by id if available in state
-        try {
-          const items = (window.__FOODY_STATE__ && window.__FOODY_STATE__.offers) || null;
-          let item = null; if (items && Array.isArray(items)) item = items.find(x=> String(x.id)===String(id));
-          // If no cache, attempt to read from DOM (minimal set)
-          openOfferEditModal(item || { id });
-        } catch(_){ openOfferEditModal({ id }); }
-      }, false);
-
-      async function fetchOfferById(id){
-        try{ return await api(`/api/v1/merchant/offers/${id}`); }catch(_){ return null; }
-      }
-      async function openOfferEditModal(o){
-        const m = $('#offerEditModal'); if (!m) return;
-        if (!o || !o.title) { try{ const fetched = await fetchOfferById(o.id); if (fetched) o = fetched; }catch(_){} }
-        $('#editId').value = o.id || '';
-        $('#editTitle').value = o.title || '';
-        $('#editOld').value = (o.original_price_cents!=null ? (o.original_price_cents/100) : (o.original_price || '')) || '';
-        $('#editPrice').value = (o.price_cents!=null ? (o.price_cents/100) : (o.price || '')) || '';
-        $('#editQty').value = (o.qty_total!=null ? o.qty_total : (o.total_qty!=null ? o.total_qty : '')) || '';
-        $('#editExpires').value = o.expires_at ? formatLocal(o.expires_at) : (o.expires || '');
-        $('#editCategory').value = o.category || 'other';
-        $('#editDesc').value = o.description || '';
-        const img = (o.image_url||o.imageUrl||o.image||o.photo||''); const hidden = document.getElementById('editImageUrl'); if (hidden) hidden.value = img;
-        m.classList.add('_open');
-      }
-      function formatLocal(iso){
-        try{ const d=new Date(iso); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }catch(_){ return ''; }
-      }
-      function toIsoLocal(str){
-        if(!str) return null; const m = String(str).match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/); if(!m) return null;
-        const [_,Y,M,D,h,mn] = m.map(Number); const dt = new Date(Y,M-1,D,h,mn); return new Date(dt.getTime()-dt.getTimezoneOffset()*60000).toISOString().replace(/\.\d{3}Z$/, 'Z');
-      }
-      const editForm = $('#offerEditForm');
-      const editCancel = $('#offerEditCancel');
-      if (editCancel) editCancel.addEventListener('click', (ev)=>{ ev.preventDefault(); const m=$('#offerEditModal'); if(m) m.classList.remove('_open'); });
-      if (editForm) editForm.addEventListener('submit', async (ev)=>{
-        ev.preventDefault();
-        const id = $('#editId').value;
-        const payload = {
-          title: $('#editTitle').value.trim(),
-          original_price: Number($('#editOld').value||0),
-          price: Number($('#editPrice').value||0),
-          qty_total: Number($('#editQty').value||0),
-          expires_at: toIsoLocal($('#editExpires').value||''),
-          category: $('#editCategory').value || 'other',
-          description: $('#editDesc').value.trim(),
-          image_url: (document.getElementById('editImageUrl')?.value||'')
-        };
-        try{
-          await api(`/api/v1/merchant/offers/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
-          const m=$('#offerEditModal'); if(m) m.classList.remove('_open');
-          showToast('Сохранено');
-          loadOffers();
-        }catch(err){ showToast('Не удалось сохранить: '+(err.message||err)); }
-      });
-    root.addEventListener('click', async (e) => {
-        const btn = e.target.closest('[data-action="delete"]'); if (!btn) return;
-        const row = btn.closest('.row'); const id = row && row.getAttribute('data-offer-id'); if (!id) return;
-        if (!confirm('Удалить оффер?')) return;
-        try {
-          await api(`/api/v1/merchant/offers/${id}`, { method: 'DELETE' });
-          row.remove();
-          try { refreshDashboard && refreshDashboard(); } catch(_){}
-          showToast('Оффер удалён');
-        } catch (err) {
-          showToast('Не удалось удалить: '+ (err.message||err));
-        }
-      });
-    }
-  }
-
-  
-let __dashLastData = null;
-// === Dashboard helpers (lightweight) ===
-function safeNum(v){ const n = Number(v); return isFinite(n) ? n : 0; }
-function parseMaybeDate(v){
-  if (!v) return null;
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(v)) return new Date(v.replace(' ', 'T'));
-  try { const d = new Date(v); return isNaN(d) ? null : d; } catch(_){ return null; }
+  const root = $('#offerList'); if (!root) return;
+  if (!Array.isArray(items) || items.length === 0) { root.innerHTML = '<div class="hint">Пока нет офферов</div>'; return; }
+  const cards = items.map(o => {
+    const price = o.price_cents!=null ? (o.price_cents/100) : (o.price!=null ? Number(o.price):0);
+    const qty   = o.qty_left ?? o.qty ?? o.qty_total ?? 0;
+    const title = (o.title || '—');
+    return `<div class="offer-card" data-offer-id="${o.id}">
+      <div class="oc-left">
+        <div class="oc-title">${title}</div>
+        <div class="oc-qty">Остаток: <b>${qty}</b></div>
+      </div>
+      <div class="oc-right"><div class="oc-price">${price.toFixed(2)}</div></div>
+    </div>`;
+  }).join('');
+  root.innerHTML = cards;
+  // click -> open details modal
+  root.querySelectorAll('.offer-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.getAttribute('data-offer-id');
+      try {
+        const items = (window.__FOODY_STATE__ && window.__FOODY_STATE__.offers) || items;
+        const o = (items && items.find(x=> String(x.id)===String(id))) || null;
+        openOfferDetails(o || {id});
+      } catch(_){ openOfferDetails({id}); }
+    });
+  });
 }
 function moneyFmt(n){ try{ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }catch(_){ return String(n); }}
 
@@ -1078,3 +996,10 @@ async function deleteOffer(id){
   showToast('Удалено');
   loadOffers();
 }
+
+(function(){
+  const m = document.getElementById('offerDetailsModal');
+  if (m){
+    m.addEventListener('click', (e)=>{ if (e.target===m || e.target.hasAttribute('data-close')) m.classList.remove('_open'); });
+  }
+})();
