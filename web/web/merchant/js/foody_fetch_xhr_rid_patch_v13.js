@@ -195,14 +195,3 @@
   // Guard against previous typo 'Bollean'
   const BooleanGuard = Boolean;
 })();
-
-
-// === Foody v17 Delete Fix Helper ===
-function __foodyDeleteUIRemove(offerId){
-  const row = document.querySelector(`#offerList .row[data-id='${offerId}']`) ||
-              document.getElementById(`offer-${offerId}`) ||
-              document.querySelector(`[data-offer-id='${offerId}']`);
-  if(row){ row.remove(); }
-  const maybe = window.loadOffers || window.refreshOffers;
-  if(typeof maybe === 'function'){ try{ maybe(); }catch(e){} }
-}
