@@ -788,6 +788,54 @@ async function postOfferStrict(payload) {
   }
 }
 
+
+  // === QR / Reservations ===
+  async function redeem(code){
+    const msg = document.getElementById('qr_msg');
+    if (!code) { if(msg){msg.textContent='Введите код'; msg.className='tag badge-warn';} return; }
+    try {
+      const res = await api(`/api/v1/merchant/reservations/${encodeURIComponent(code)}/redeem`, { method:'POST' });
+      if (msg){ msg.textContent = 'Погашено ✓'; msg.className='tag badge-ok'; }
+      try { refreshDashboard && refreshDashboard(); } catch(_){}
+    } catch (e) {
+      if (msg){ msg.textContent = 'Ошибка: ' + (e.message||e); msg.className='tag badge-warn'; }
+    }
+  }
+  async function startScan(){
+    const msg = document.getElementById('qr_msg');
+    const video = document.getElementById('qr_video');
+    if (!('BarcodeDetector' in window)) {
+      if (msg){ msg.textContent='Сканер не поддерживается: введите код вручную'; msg.className='tag badge-warn'; }
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment' } });
+      video.srcObject = stream; await video.play();
+      const det = new BarcodeDetector({ formats:['qr_code'] });
+      const timer = setInterval(async () => {
+        try {
+          const codes = await det.detect(video);
+          if (codes && codes[0]){
+            clearInterval(timer);
+            stream.getTracks().forEach(t=>t.stop());
+            const val = codes[0].rawValue || '';
+            const input = document.getElementById('qr_code'); if (input) input.value = val;
+            redeem(val);
+          }
+        } catch(_) {}
+      }, 350);
+    } catch (e) {
+      if (msg){ msg.textContent='Не удалось открыть камеру'; msg.className='tag badge-warn'; }
+    }
+  }
+  function initQrTab(){
+    const r = document.getElementById('qr_redeem_btn');
+    const s = document.getElementById('qr_scan_btn');
+    if (r && !r.dataset.bound){ r.dataset.bound='1'; r.addEventListener('click', ()=> redeem((document.getElementById('qr_code')||{}).value||'')); }
+    if (s && !s.dataset.bound){ s.dataset.bound='1'; s.addEventListener('click', startScan); }
+  }
+
+
 document.addEventListener('DOMContentLoaded', () => {
     try {
       // Universal [data-tab] router (incl. dashboard buttons)

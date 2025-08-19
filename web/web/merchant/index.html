@@ -119,7 +119,7 @@
       <button class="seg-btn" data-tab="offers">Офферы</button>
       <button class="seg-btn" data-tab="create">Создать</button>
       <button class="seg-btn" data-tab="profile">Профиль</button>
-      <button class="seg-btn" data-tab="export">Экспорт</button>
+      <button class="seg-btn" data-tab="qr">QR / Брони</button>
     </nav>
 
     <main class="content">
@@ -398,6 +398,27 @@
           <div class="muted small">Если возникают проблемы с запросами, проверьте соединение с API.</div>
         </div>
       </section>
+    <section class="pane" id="qr">
+        <div class="card">
+          <div class="card-title">QR / Брони</div>
+          <div class="grid two">
+            <div>
+              <label>Код брони
+                <input id="qr_code" placeholder="Вставьте код брони или отсканируйте">
+              </label>
+              <div style="display:flex;gap:8px;align-items:center;justify-content:flex-start;margin-top:8px;">
+                <button class="btn btn-primary" id="qr_redeem_btn">Погасить</button>
+                <button class="btn btn-ghost" id="qr_scan_btn">Сканировать камерой</button>
+                <span id="qr_msg" class="tag">Готово к работе</span>
+              </div>
+            </div>
+            <div>
+              <video id="qr_video" playsinline muted style="width:100%;border-radius:12px;border:1px solid var(--border);background:#0f172a"></video>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <nav class="bottom-nav">
@@ -405,7 +426,7 @@
       <button class="nav-btn" data-tab="offers" title="Офферы">🛍️</button>
       <button class="nav-btn fab" data-tab="create" title="Создать">＋</button>
       <button class="nav-btn" data-tab="profile" title="Профиль">👤</button>
-      <button class="nav-btn" data-tab="export" title="Экспорт">⬇️</button>
+      <button class="nav-btn" data-tab="qr" title="QR / Брони">🎟️</button>
     </nav>
 
     <div class="modal" id="cityModal" aria-hidden="true">
