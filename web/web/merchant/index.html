@@ -72,11 +72,29 @@
 <link href="./offers_actions.css" rel="stylesheet">
 
 <style>
-/* Center the Offer Edit modal without touching rest of design */
-#offerEditModal { position: fixed; inset: 0; display: none; place-items: center; z-index: 60; }
-#offerEditModal._open { display: grid !important; }
+/* Center the Offer Edit modal without touching rest of design (robust) */
+#offerEditModal {
+  position: fixed; inset: 0; display: none; z-index: 60;
+  /* grid centering when open */
+  place-items: center;
+}
+/* consider all open states, including inline style="display:block" */
+#offerEditModal._open,
+#offerEditModal.open,
+#offerEditModal[aria-hidden="false"],
+#offerEditModal[style*="display:block"],
+#offerEditModal[style*="display: block"]{
+  display: grid !important;
+}
+/* optional backdrop if present */
 #offerEditModal .modal-dim { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
-#offerEditModal .modal-card { position: relative; width: min(640px, 94vw); border-radius: 16px; overflow: hidden; }
+/* the card itself */
+#offerEditModal .modal-card {
+  position: relative;
+  width: min(640px, 94vw);
+  max-height: 90vh; overflow: auto;
+  border-radius: 16px;
+}
 </style>
 
 </head>
