@@ -129,3 +129,5 @@ html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,
 .modal .sheet .content{padding:14px 16px;display:grid;gap:10px}
 .modal .actions{display:flex;gap:10px;justify-content:flex-end;padding:0 16px 16px}
 .modal .muted{opacity:.8;font-size:13px}
+
+.card.disabled{opacity:.55;filter:grayscale(.3);pointer-events:auto}

@@ -68,6 +68,20 @@
   function parseJSON(res){ return res.json().catch(_=>({})); }
   function toast(m){ const el=document.createElement('div'); el.className='t'; el.textContent=m; toastBox.appendChild(el); setTimeout(()=>el.remove(),2800); }
 
+// --- Normalization helpers ---
+function normOffer(o){
+  const id = o.id ?? o.offer_id ?? o.offerId ?? o.uuid;
+  const title = o.title ?? o.name ?? '—';
+  const description = o.description ?? o.desc ?? '';
+  const image_url = o.image_url ?? o.photo_url ?? o.image ?? (o.images && o.images[0] && (o.images[0].url||o.images[0].src)) || '';
+  const price = (o.price_cents!=null) ? (o.price_cents/100) : (o.price!=null ? Number(o.price) : 0);
+  const old = (o.original_price_cents!=null) ? (o.original_price_cents/100) : (o.old_price!=null ? Number(o.old_price) : 0);
+  const qty_left = (o.qty_left!=null) ? Number(o.qty_left) : (o.quantity!=null ? Number(o.quantity) : 0);
+  const expires_at = o.expires_at ?? o.expiresAt ?? o.expires ?? null;
+  const category = o.category ?? o.cat ?? '';
+  return { ...o, id, title, description, image_url, price, old, qty_left, expires_at, category };
+}
+
   // Ticket (reservation) bar from localStorage
   function readTicket(){
     try{ return JSON.parse(localStorage.getItem('foody_ticket')||'null'); }catch(_){ return null; }
@@ -104,10 +118,10 @@
   function applyFilterSort(){
     const qv = (q?.value||'').trim().toLowerCase();
     const now = Date.now();
-    let arr = ALL.slice();
+    let arr = ALL.map(normOffer);
     if (qv) arr = arr.filter(o=> (o.title||'').toLowerCase().includes(qv));
     if (currentFilter==='soon') arr = arr.filter(o=> o.expires_at && (new Date(o.expires_at).getTime()-now) < 4*3600e3 );
-    if (currentFilter==='discount') arr = arr.filter(o=> disc((o.price_cents||0)/100,(o.original_price_cents||0)/100) >= 50);
+    if (currentFilter==='discount') arr = arr.filter(o=> disc(o.price, o.old) >= 50);
     if (currentFilter==='in_stock') arr = arr.filter(o=> (o.qty_left??0) > 0);
     // sort
     const mode = (sortSel?.value||'soon');
@@ -120,8 +134,8 @@
       const ta = a.expires_at? new Date(a.expires_at).getTime(): Infinity;
       const tb = b.expires_at? new Date(b.expires_at).getTime(): Infinity;
       if (ta!==tb) return ta-tb;
-      const da = disc((a.price_cents||0)/100,(a.original_price_cents||0)/100);
-      const db = disc((b.price_cents||0)/100,(b.original_price_cents||0)/100);
+      const da = disc(a.price, a.old);
+      const db = disc(b.price, b.old);
       return db-da;
     });
     VIEW = arr;
@@ -154,26 +168,46 @@
 
   // Sheet
   function openSheet(o){
-    CURRENT = o;
-    $('#sTitle').textContent = o.title||'—';
-    $('#sImg').src = o.image_url||'';
-    const price = (o.price_cents||0)/100, old = (o.original_price_cents||0)/100, d = disc(price, old);
-    $('#sPrice').textContent = price.toFixed(0)+' ₽';
-    $('#sOld').textContent = old? (old.toFixed(0)+' ₽') : '';
-    $('#sDisc').textContent = d? ('-'+d+'%') : '';
-    $('#sQty').textContent = (o.qty_left??'—');
-    $('#sExp').textContent = o.expires_at? fmt.format(new Date(o.expires_at)) : '—';
-    $('#sLeft').textContent = leftStr(o.expires_at||'');
-    $('#sDesc').textContent = o.description||'';
-    // Reserve button
-    const btn = $('#reserveBtn');
-    if (btn){
-      btn.disabled = false;
-      btn.onclick = async ()=>{
-        btn.disabled = true;
-        try{
-          const resp = await fetch(API+'/api/v1/public/reserve',{
-            method:'POST', headers:{'Content-Type':'application/json'},
+  o = normOffer(o);
+  CURRENT = o;
+  $('#sTitle').textContent = o.title||'—';
+  $('#sImg').src = o.image_url||'';
+  const price = (o.price!=null? o.price : ((o.price_cents||0)/100));
+  const old = (o.old!=null? o.old : ((o.original_price_cents||0)/100));
+  const d = disc(price, old);
+  $('#sPrice').textContent = price.toFixed(0)+' ₽';
+  $('#sOld').textContent = old? (old.toFixed(0)+' ₽') : '';
+  $('#sDisc').textContent = d? ('-'+d+'%') : '';
+  $('#sQty').textContent = (o.qty_left??'—');
+  $('#sExp').textContent = o.expires_at? fmt.format(new Date(o.expires_at)) : '—';
+  $('#sLeft').textContent = leftStr(o.expires_at||'');
+  $('#sDesc').textContent = o.description||'';
+  const btn = $('#reserveBtn');
+  const expired = o.expires_at ? (new Date(o.expires_at).getTime() < Date.now()) : false;
+  const soldout = (o.qty_left??0) <= 0;
+  if (btn){
+    btn.disabled = expired || soldout;
+    btn.textContent = expired ? 'Истёк' : (soldout ? 'Нет в наличии' : 'Забронировать');
+    btn.onclick = async ()=>{
+      if (btn.disabled) return;
+      btn.disabled = true;
+      try{
+        const resp = await fetch(API+'/api/v1/public/reserve',{
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ offer_id: o.id, name: 'Web', phone: '' })
+        });
+        const data = await parseJSON(resp);
+        if (!resp.ok) throw new Error(data?.detail||'reserve');
+        toast('Забронировано ✅');
+        if (data && (data.code||data.ticket_code)){
+          writeTicket({ code: data.code||data.ticket_code, title: o.title, image_url: o.image_url, price_cents:Math.round(price*100), original_price_cents:Math.round(old*100), qty_left:o.qty_left, expires_at:o.expires_at, description:o.description });
+        }
+      }catch(e){ toast('Не удалось забронировать'); }
+      finally { btn.disabled = false; }
+    };
+  }
+  sheet.classList.remove('hidden');
+},
             body: JSON.stringify({ offer_id: o.id||o.offer_id, name: 'TG', phone: '' })
           });
           const data = await parseJSON(resp);
@@ -197,9 +231,13 @@
       const res = await fetch(API + '/api/v1/public/offers');
       const data = await parseJSON(res);
       if (Array.isArray(data)) ALL = data;
+      ALL = Array.isArray(ALL) ? ALL.map(normOffer) : [];
       else if (data && Array.isArray(data.items)) ALL = data.items;
+      ALL = Array.isArray(ALL) ? ALL.map(normOffer) : [];
       else if (data && Array.isArray(data.results)) ALL = data.results;
+      ALL = Array.isArray(ALL) ? ALL.map(normOffer) : [];
       else if (data && data.data && Array.isArray(data.data.offers)) ALL = data.data.offers;
+      ALL = Array.isArray(ALL) ? ALL.map(normOffer) : [];
       else ALL = [];
     }catch(_){
       ALL = [];
