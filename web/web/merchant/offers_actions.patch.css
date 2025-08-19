@@ -16,3 +16,16 @@
   align-items: center;
 }
 #offerList .row.head { font-weight:600; color:var(--subtext); }
+
+
+/* Mobile Offers Cards */
+@media (max-width: 768px){
+  #offerList{ display:none !important; }
+  #offerCards{ display:grid !important; grid-template-columns: 1fr; gap:10px; }
+  .offer-card{ border:1px solid rgba(148,163,184,.15); background:rgba(2,6,23,.65); border-radius:14px; padding:12px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .offer-card .title{ font-weight:600; font-size:16px; }
+  .offer-card .meta{ display:flex; gap:10px; font-size:14px; color:#a3a3a3; }
+  .offer-card .qty{ font-weight:700; }
+  .offer-card .arrow{ opacity:.7; }
+}
+

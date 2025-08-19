@@ -570,6 +570,7 @@ function isOfferActive(o){
     return (qty>0) && (!ex || ex>now);
   } catch(_){ return true; }
 }
+function isMobile(){ try{ return window.matchMedia && window.matchMedia("(max-width: 768px)").matches; }catch(_){ return window.innerWidth<780; } }
 function renderOffers(items){
     const root = $('#offerList'); if (!root) return;
     if (!Array.isArray(items) || items.length === 0) { root.innerHTML = '<div class="hint">Пока нет офферов</div>'; return; }
@@ -590,6 +591,32 @@ function renderOffers(items){
     }).join('');
     const head = `<div class="row head"><div>Название</div><div>Цена</div><div>Скидка</div><div>Остаток</div><div>До</div><div></div></div>`;
     root.innerHTML = head + rows;
+
+    // Render mobile cards
+    try{
+      const cardsRoot = document.getElementById('offerCards');
+      if (cardsRoot){
+        if (isMobile()){
+          const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+          cardsRoot.innerHTML = items.filter(o => (document.querySelector('#offerFilter .seg-btn.active')?.dataset.filter||'active')==='active' ? isOfferActive(o) : !isOfferActive(o)).map(o=>{
+            const qty = (o.qty_left ?? o.qty_total ?? 0);
+            return `<div class="offer-card" data-offer-id="${o.id}">
+              <div>
+                <div class="title">${o.title||'—'}</div>
+                <div class="meta"><span class="qty">${qty}</span><span>${o.price_cents!=null?(o.price_cents/100).toFixed(2):(o.price||'')}</span></div>
+              </div>
+              <div class="arrow">›</div>
+            </div>`;
+          }).join('');
+          cardsRoot.style.display = '';
+          document.getElementById('offerList').style.display='none';
+        }else{
+          cardsRoot.style.display='none';
+          document.getElementById('offerList').style.display='';
+        }
+      }
+    }catch(_){}
+    
     // bind delete (delegated)
     if (!root.dataset.deleteBound){
       root.dataset.deleteBound = '1';
@@ -1035,3 +1062,38 @@ function drawSpark(canvasId, data){
     ctx.stroke();
   }catch(_){}
 }
+
+(function(){
+  let _rt=null; window.addEventListener('resize', ()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ try{ const items=(window.__FOODY_STATE__&&window.__FOODY_STATE__.offers)||[]; renderOffers(items); }catch(_){}} , 120); }, {passive:true});
+})();
+
+function openOfferDetails(o){
+  const m = document.getElementById('offerDetailsModal'); if (!m) return;
+  document.getElementById('odTitle').textContent = o.title || 'Оффер';
+  const price = o.price_cents!=null?(o.price_cents/100): (o.price||0);
+  const old   = o.original_price_cents!=null?(o.original_price_cents/100): (o.original_price||0);
+  document.getElementById('odPrice').textContent = price ? price.toFixed(2) + (old?` (из ${old.toFixed?old.toFixed(2):old})`:'') : '—';
+  document.getElementById('odQty').textContent = (o.qty_left ?? o.qty_total ?? 0);
+  const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle:'short', timeStyle:'short' });
+  document.getElementById('odExp').textContent = o.expires_at ? fmt.format(new Date(o.expires_at)) : '—';
+  const d = document.getElementById('odDesc'); const wrap = document.getElementById('odDescWrap');
+  if (o.description){ d.textContent = o.description; wrap.style.display=''; } else { d.textContent=''; wrap.style.display='none'; }
+  document.getElementById('odEdit').onclick = ()=>{ m.classList.remove('_open'); openOfferEditModal(o); };
+  document.getElementById('odDelete').onclick = async ()=>{
+    try{ await api(`/api/v1/merchant/offers/${o.id}`, {method:'DELETE'}); showToast('Удалено'); m.classList.remove('_open'); loadOffers(); }catch(err){ showToast('Не удалось удалить: '+(err.message||err)); }
+  };
+  document.getElementById('odClose').onclick = ()=> m.classList.remove('_open');
+  m.classList.add('_open');
+}
+
+document.addEventListener('click', (ev)=>{
+  const card = ev.target.closest && ev.target.closest('.offer-card');
+  if (card){
+    const id = card.getAttribute('data-offer-id');
+    try{
+      const items = (window.__FOODY_STATE__ && window.__FOODY_STATE__.offers) || [];
+      const item = items.find(x=> String(x.id)===String(id)) || {id};
+      openOfferDetails(item);
+    }catch(_){}
+  }
+}, {passive:false});
