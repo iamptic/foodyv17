@@ -1,0 +1,47 @@
+/* web/web/merchant/css/modal_center_fix.css */
+/* Center edit modal and make it responsive, without altering theme */
+
+#offerEditModal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  place-items: center;
+  z-index: 60;
+}
+
+#offerEditModal._open {
+  display: grid !important;
+}
+
+#offerEditModal .modal-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(2px);
+}
+
+#offerEditModal .modal-card {
+  position: relative;
+  width: min(640px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 16px;
+  background: var(--card-bg, #121212);
+  color: var(--fg, #fff);
+  box-shadow: 0 12px 40px rgba(0,0,0,.45);
+  padding: 12px 14px;
+}
+
+#offerEditModal .modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+@media (max-width: 420px) {
+  #offerEditModal .modal-card {
+    width: 96vw;
+    padding: 10px 12px;
+  }
+}
