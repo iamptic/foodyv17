@@ -294,11 +294,10 @@
       </label>
 
       <!-- Фото (опционально) -->
-      <div class="field">
-        <label class="full">Фото (1:1)<input type="file" id="createPhoto" class="filepond" accept="image/*"><input type="hidden" id="createImageUrl" name="image_url"></label>
-        <input type="hidden" id="offerImageUrl" name="image_url">
-        <p class="hint">Поддерживаются JPG/PNG/WebP до 5 МБ</p>
-      </div>
+      <label class="full">Фото (1:1)
+        <input type="file" id="createPhoto" class="filepond" accept="image/*">
+        <input type="hidden" id="createImageUrl" name="image_url">
+      </label>
 
       <!-- Краткое описание -->
       <label class="full">Краткое описание
@@ -338,6 +337,10 @@
             <label>Название
               <input name="name" placeholder="Кафе Плюс">
             </label>
+            <div class="full" style="display:flex;gap:8px;align-items:center;margin-top:-6px;">
+              <button class="btn btn-ghost" type="button" id="btnGeo">Определить по геолокации</button>
+              <div id="geoHint" class="muted small" style="margin-left:6px;"></div>
+            </div>
             <label>Телефон
               <input name="phone" id="profilePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7 900 000 00 00">
             </label>
@@ -352,7 +355,7 @@
               </div>
             </label>
             <label class="full">Адрес
-              <input name="address" placeholder="Город, улица, дом">
+              <input id="address"  name="address" placeholder="Город, улица, дом">
             </label>
             <label>Время работы — с
               <input name="work_from" id="profile_work_from" type="time" placeholder="09:00">
