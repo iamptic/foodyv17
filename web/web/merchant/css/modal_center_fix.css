@@ -1,26 +1,31 @@
-/* Foody v17 exact center for #offerEditModal (no redesign) */
+/* Exact center fix for #offerEditModal */
 #offerEditModal {
   position: fixed !important;
   inset: 0 !important;
-  display: none !important; /* default hidden */
-  z-index: 1000 !important;
-}
-/* when opened via style or class */
-#offerEditModal._open,
-#offerEditModal[style*="display: block"],
-#offerEditModal[aria-hidden="false"] {
-  display: flex !important;
+  display: none;
   align-items: center !important;
   justify-content: center !important;
+  background: rgba(0,0,0,0.55);
+  z-index: 1000;
 }
-#offerEditModal .modal-dim {
-  position: absolute !important;
-  inset: 0 !important;
-  background: rgba(0,0,0,.5) !important;
+#offerEditModal._open,
+#offerEditModal.open,
+#offerEditModal[aria-hidden="false"],
+#offerEditModal[style*="display: block"] {
+  display: flex !important;
 }
 #offerEditModal .modal-card {
   position: relative !important;
-  max-height: 90vh !important;
-  overflow: auto !important;
-  /* keep original width from your CSS/HTML */
+  margin: 0 auto !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  width: min(640px, 96vw);
+  max-height: 90vh;
+  overflow: auto;
+  background: #151a21;
+  border-radius: 12px;
+  padding: 16px;
 }
