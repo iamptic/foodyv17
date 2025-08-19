@@ -1,76 +1,108 @@
-/* Foody v17 — Modal Center Fix (safe override, no redesign)
-   Targets common modal ids/classes found in the project.
-   Goal: when modal is opened, center it on screen regardless of old left/top rules.
+/* Foody v17 — modal center FORCE override (no redesign)
+   Drop-in replacement for your existing modal_center_fix.css
+   Targets common containers: #offerEditModal, #offerModal, .modal, .edit-modal
+   Works even if previous CSS sets left:0; top:0; position:absolute;
 */
 
-/* Backdrop/container becomes fixed full-screen flexbox */
-#offerModal,
+/* 1) Generic overlay containers — make them fullscreen and flex-centered when open */
 #offerEditModal,
+#offerModal,
 .modal,
-.edit-modal,
-.modal-backdrop {
+.edit-modal {
   position: fixed !important;
-  inset: 0 !important;            /* top:0; right:0; bottom:0; left:0 */
-  display: none !important;       /* default hidden */
+  inset: 0 !important;
+  display: none !important;
   align-items: center !important;
   justify-content: center !important;
-  background: rgba(0,0,0,0.55) !important;  /* subtle dim */
+  background: rgba(0,0,0,.55) !important;
   z-index: 9999 !important;
-  padding: 16px !important;       /* allow breathing room on small screens */
+  padding: 16px !important;
 }
 
-/* States that indicate "open" */
-#offerModal.open,
+/* common open states */
 #offerEditModal.open,
-.modal.open,
-.edit-modal.open,
-#offerModal._open,
 #offerEditModal._open,
-.modal._open,
-.edit-modal._open,
-#offerModal[aria-hidden="false"],
 #offerEditModal[aria-hidden="false"],
+#offerModal.open,
+#offerModal._open,
+#offerModal[aria-hidden="false"],
+.modal.open,
+.modal._open,
 .modal[aria-hidden="false"],
+.edit-modal.open,
+.edit-modal._open,
 .edit-modal[aria-hidden="false"] {
   display: flex !important;
 }
 
-/* Card/content inside */
-#offerModal .modal-card,
+/* 2) Modal card/content box — center & constrain */
 #offerEditModal .modal-card,
-.modal .modal-card,
-.edit-modal .modal-card,
-#offerModal .modal-content,
 #offerEditModal .modal-content,
+#offerModal .modal-card,
+#offerModal .modal-content,
+.modal .modal-card,
 .modal .modal-content,
+.edit-modal .modal-card,
 .edit-modal .modal-content {
   position: relative !important;
+  max-width: min(860px, 100%) !important;
+  width: 100% !important;
   max-height: 90vh !important;
   overflow: auto !important;
-  width: min(860px, 100%) !important;
   margin: 0 auto !important;
-  background: inherit; /* keep existing theme */
+  background: var(--card, #11161e) !important;
+  border-radius: 16px !important;
+  border: 1px solid var(--line, #232a35) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35) !important;
+  padding: 16px !important;
 }
 
-/* Absolute/fixed legacy centering fallback — if project sets explicit left/top */
-#offerModal .modal-card,
-#offerEditModal .modal-card,
-.modal .modal-card,
-.edit-modal .modal-card,
-#offerModal .modal-content,
-#offerEditModal .modal-content,
-.modal .modal-content,
-.edit-modal .modal-content {
+/* 3) Fallback for cases where container can't be flexed:
+      Center the first child by translate from center of viewport */
+#offerEditModal:not(.open):not(._open):not([aria-hidden="false"]) .modal-card,
+#offerModal:not(.open):not(._open):not([aria-hidden="false"]) .modal-card,
+.modal:not(.open):not(._open):not([aria-hidden="false"]) .modal-card,
+.edit-modal:not(.open):not(._open):not([aria-hidden="false"]) .modal-card {
+  /* no-op when closed */
+}
+
+/* Hard fallback if some legacy CSS still sets absolute + left:0 */
+#offerEditModal .modal-card[style*="left: 0"],
+#offerModal .modal-card[style*="left: 0"],
+.modal .modal-card[style*="left: 0"],
+.edit-modal .modal-card[style*="left: 0"],
+#offerEditModal .modal-content[style*="left: 0"],
+#offerModal .modal-content[style*="left: 0"],
+.modal .modal-content[style*="left: 0"],
+.edit-modal .modal-content[style*="left: 0"] {
   left: 50% !important;
-  transform: translateX(-50%) !important;
+  top: 50% !important;
+  transform: translate(-50%, -50%) !important;
 }
 
-/* If project forces a narrow sidebar-like width, allow wider */
-#offerModal .modal-card,
+/* 4) Close button quality-of-life (optional, non-breaking) */
+#offerEditModal .modal-close,
+#offerModal .modal-close,
+.modal .modal-close,
+.edit-modal .modal-close {
+  position: absolute !important;
+  right: 10px !important;
+  top: 10px !important;
+  z-index: 1 !important;
+}
+
+/* 5) Prevent parent layout from constraining modal */
+body.modal-open { overflow: hidden !important; }
+
+/* 6) iOS scroll momentum */
 #offerEditModal .modal-card,
+#offerModal .modal-card,
 .modal .modal-card,
-.edit-modal .modal-card {
-  min-width: min(560px, 100%) !important;
-}
+.edit-modal .modal-card { -webkit-overflow-scrolling: touch !important; }
 
-/* Close button positioning remains intact; no styles here to avoid clashes */
+@media (max-width: 640px){
+  #offerEditModal .modal-card,
+  #offerModal .modal-card,
+  .modal .modal-card,
+  .edit-modal .modal-card { border-radius: 12px !important; }
+}
