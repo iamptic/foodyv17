@@ -1,19 +1,30 @@
-/* Exact center fix for #offerEditModal */
+/* Foody v17 — exact center for the Edit Offer modal (#offerEditModal) */
+/* Container as fullscreen overlay */
 #offerEditModal {
   position: fixed !important;
   inset: 0 !important;
   display: none;
   align-items: center !important;
   justify-content: center !important;
-  background: rgba(0,0,0,0.55);
   z-index: 1000;
 }
+
+/* Consider all common "opened" states */
 #offerEditModal._open,
 #offerEditModal.open,
-#offerEditModal[aria-hidden="false"],
+#offerEditModal[aria-hidden="false"]],
 #offerEditModal[style*="display: block"] {
   display: flex !important;
 }
+
+/* Backdrop */
+#offerEditModal .modal-dim {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(0,0,0,.55) !important;
+}
+
+/* Modal card centered, cancel any old offsets */
 #offerEditModal .modal-card {
   position: relative !important;
   margin: 0 auto !important;
@@ -22,10 +33,16 @@
   top: auto !important;
   bottom: auto !important;
   transform: none !important;
-  width: min(640px, 96vw);
-  max-height: 90vh;
-  overflow: auto;
-  background: #151a21;
-  border-radius: 12px;
-  padding: 16px;
+
+  width: min(720px, 96vw) !important;
+  max-height: 90vh !important;
+  overflow: auto !important;
+  border-radius: 16px !important;
+  background: var(--card-bg, #121212) !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,.45) !important;
+  padding: 0 !important; /* ваш текущий .modal-card уже содержит внутренние отступы */
+}
+
+@media (max-width: 480px){
+  #offerEditModal .modal-card { width: 96vw !important; border-radius: 12px !important; }
 }
