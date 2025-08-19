@@ -314,6 +314,15 @@
 
 
       <section class="pane" id="offers">
+  <div class="card">
+    <div class="card-title">Мои офферы</div>
+    <div id="offersFilter" class="segmented" style="margin:6px 0 10px;">
+      <button class="seg-btn active" data-filter="active">Активные</button>
+      <button class="seg-btn" data-filter="expired">Истёкшие</button>
+      <button class="seg-btn" data-filter="all">Все</button>
+    </div>
+    <div id="offersList" class="list list-cards"></div>
+  </div>
         <div class="card">
           <div class="card-title">Мои офферы</div>
           
@@ -437,7 +446,26 @@
         </div>
       </section>
 
-    </main>
+    <template id="offerCardTpl">
+  <div class="item offer-card" data-id="">
+    <div class="left">
+      <div class="thumb" style="background-image: url('');"></div>
+      <div class="meta">
+        <div class="title"></div>
+        <div class="badges"></div>
+        <div class="muted small times"></div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="price"></div>
+      <div class="actions">
+        <button class="btn btn-ghost btn-edit">Редактировать</button>
+        <button class="btn btn-ghost btn-danger btn-delete">Удалить</button>
+      </div>
+    </div>
+  </div>
+</template>
+</main>
 
     <nav class="bottom-nav">
       <button class="nav-btn active" data-tab="dashboard" title="Дашборд">🏠</button>

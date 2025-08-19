@@ -546,7 +546,7 @@ function bindExpirePresets(){
     } catch (e) {}
   }
 
-  async function loadOffers() {
+  async function loadOffers(){
     if (state._offersLoading) return; state._offersLoading = true;
     if (!state.rid || !state.key) return;
     const root = $('#offerList'); if (root) root.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
@@ -1044,3 +1044,56 @@ async function getMyGeo(){
   }, (err)=>{ if (hint){ hint.textContent='Доступ к геолокации отклонён'; } });
 }
 document.addEventListener('click', (e)=>{ const b = e.target.closest('#btnGeo'); if (b){ e.preventDefault(); getMyGeo(); }});
+
+function openOfferEdit(of){
+  const m = document.getElementById('offerEditModal'); if (!m) return;
+  m.setAttribute('aria-hidden','false');
+  const f = document.getElementById('editOfferForm'); if (!f) return;
+  f.dataset.id = of.id;
+  f.title.value = of.title || '';
+  f.category.value = of.category || '';
+  f.price.value = of.price || '';
+  f.old_price.value = of.old_price || '';
+  f.quantity.value = of.quantity || of.qty_left || '';
+  f.description.value = of.description || '';
+}
+function closeOfferEdit(){
+  const m = document.getElementById('offerEditModal'); if (!m) return;
+  m.setAttribute('aria-hidden','true');
+}
+document.getElementById('editCancel')?.addEventListener('click', closeOfferEdit);
+
+document.getElementById('offerEditModal')?.addEventListener('click', (e)=>{
+  if (e.target.classList.contains('modal-dim')) closeOfferEdit();
+});
+
+on('#editOfferForm','submit', async (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const id = f.dataset.id;
+  const body = {
+    title: f.title.value.trim(),
+    category: f.category.value.trim(),
+    price: Number(f.price.value||0),
+    old_price: Number(f.old_price.value||0) || null,
+    quantity: Number(f.quantity.value||0),
+    description: f.description.value.trim() || null,
+  };
+  try {
+    // Prefer PATCH; fallback to PUT
+    let res = await api(`/api/v1/merchant/offers/${id}`, { method:'PATCH', body: JSON.stringify(body) });
+    if (!res) { /* ok */ }
+    closeOfferEdit();
+    await reloadOffers();
+    showToast('Сохранено');
+  } catch(err){
+    try {
+      await api(`/api/v1/merchant/offers/${id}`, { method:'PUT', body: JSON.stringify(body) });
+      closeOfferEdit();
+      await reloadOffers();
+      showToast('Сохранено');
+    } catch(e2){
+      showToast('Ошибка сохранения: ' + (e2.message||e2));
+    }
+  }
+});
