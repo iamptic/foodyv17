@@ -425,3 +425,42 @@ section#profile .card form :is(button[type="submit"], .actions button[type="subm
 .tag{display:inline-block;border:1px solid var(--border);border-radius:10px;padding:6px 10px;font-size:12px;color:var(--text);background:#0f172a}
 .badge-ok{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.45);color:#86efac}
 .badge-warn{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.45);color:#fca5a5}
+
+
+/* === Foody patch: uniform field heights for offer create/edit === */
+:root { --ctl-h: 44px; }
+#offerForm input[type="text"],
+#offerForm input[type="number"],
+#offerForm input[type="tel"],
+#offerForm input[type="password"],
+#offerForm input[type="datetime-local"],
+#offerForm select,
+#offerEditForm input[type="text"],
+#offerEditForm input[type="number"],
+#offerEditForm input[type="tel"],
+#offerEditForm input[type="password"],
+#offerEditForm input[type="datetime-local"],
+#offerEditForm select {
+  height: var(--ctl-h);
+  min-height: var(--ctl-h);
+  line-height: calc(var(--ctl-h) - 2px);
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+#offerForm textarea, #offerEditForm textarea { min-height: 96px; padding: 10px 12px; line-height: 1.35; }
+
+/* Keep buttons/segmented the same height next to inputs */
+#offerForm .btn, #offerEditForm .btn, #offerForm .seg-btn, #offerEditForm .seg-btn {
+  min-height: var(--ctl-h);
+}
+
+
+/* === Foody patch: mobile offer cards === */
+@media (max-width: 640px){
+  #offerList.table { display:block; }
+  #offerList .row, #offerList .row.head { display:none; }
+  #offerCards { display:grid; gap:10px; }
+  .offer-card { display:flex; justify-content:space-between; align-items:center; padding:12px; border:1px solid rgba(255,255,255,.06); border-radius:14px; background:rgba(2,6,23,.6); }
+  .offer-card .title { font-weight:600; }
+  .offer-card .meta { opacity:.8; font-size:.9em; }
+}

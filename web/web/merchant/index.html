@@ -526,23 +526,24 @@
 
 
 
-<div id="offerDetailsModal" class="modal">
-  <div class="modal__dialog small">
-    <div class="modal__head">
-      <div class="modal__title" id="odTitle">Оффер</div>
-      <button class="btn btn-ghost" id="odClose">✕</button>
+<!-- Offer Details Modal -->
+<div id="offerDetailsModal" class="modal" style="display:none;">
+  <div class="modal-dim" data-close="1"></div>
+  <div class="modal-card card">
+    <div class="card-title" id="detailTitle">Оффер</div>
+    <div class="grid two small-gap">
+      <div><div class="hint">Цена</div><div id="detailPrice" class="big">—</div></div>
+      <div><div class="hint">Остаток</div><div id="detailQty" class="big">—</div></div>
+      <div class="full"><div class="hint">До</div><div id="detailUntil">—</div></div>
+      <div class="full"><div class="hint">Описание</div><div id="detailDesc">—</div></div>
     </div>
-    <div class="modal__body">
-      <div class="od-row"><span class="muted">Остаток:</span> <b id="odQty">—</b></div>
-      <div class="od-row"><span class="muted">Цена:</span> <b id="odPrice">—</b></div>
-      <div class="od-row"><span class="muted">До:</span> <b id="odExp">—</b></div>
-      <div class="od-row" id="odDescWrap" style="display:none;"><span class="muted">Описание:</span> <span id="odDesc"></span></div>
-    </div>
-    <div class="modal__foot" style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" id="odEdit">Редактировать</button>
-      <button class="btn btn-danger" id="odDelete">Удалить</button>
+    <div class="actions" style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn" id="offerDetailsClose">Закрыть</button>
+      <button class="btn btn-ghost" id="offerDetailsEdit">Редактировать</button>
+      <button class="btn btn-danger" id="offerDetailsDelete">Удалить</button>
     </div>
   </div>
 </div>
+
 </body>
 </html>

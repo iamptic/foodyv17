@@ -570,7 +570,22 @@ function isOfferActive(o){
     return (qty>0) && (!ex || ex>now);
   } catch(_){ return true; }
 }
-function isMobile(){ try{ return window.matchMedia && window.matchMedia("(max-width: 768px)").matches; }catch(_){ return window.innerWidth<780; } }
+function renderOfferCards(items){
+  const root = document.getElementById('offerList'); if (!root) return;
+  const f = getOfferFilter();
+  const filtered = items.filter(o => f==='active'? isOfferActive(o) : !isOfferActive(o));
+  if (filtered.length===0){ root.innerHTML = '<div class="hint">Пока нет офферов</div>'; return; }
+  const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+  const list = filtered.map(o=>{
+    const qty = o.qty_left ?? o.qty_total ?? o.qty ?? 0;
+    const price = o.price_cents!=null ? o.price_cents/100 : (o.price!=null ? Number(o.price) : 0);
+    return `<div class="offer-card" data-offer-id="${o.id}">
+      <div class="title">${o.title||'—'}<div class="meta">осталось: ${qty}</div></div>
+      <div class="meta">${price?price.toFixed(2):''}</div>
+    </div>`;
+  }).join('');
+  root.innerHTML = `<div id="offerCards">${list}</div>`;
+}
 function renderOffers(items){
     const root = $('#offerList'); if (!root) return;
     if (!Array.isArray(items) || items.length === 0) { root.innerHTML = '<div class="hint">Пока нет офферов</div>'; return; }
@@ -589,34 +604,9 @@ function renderOffers(items){
         <div class="actions"><button class="btn btn-ghost" data-action="edit-offer">Редактировать</button><button class="btn btn-danger" data-action="delete">Удалить</button></div>
       </div>`;
     }).join('');
+    if (window.matchMedia('(max-width: 640px)').matches){ return renderOfferCards(items); }
     const head = `<div class="row head"><div>Название</div><div>Цена</div><div>Скидка</div><div>Остаток</div><div>До</div><div></div></div>`;
     root.innerHTML = head + rows;
-
-    // Render mobile cards
-    try{
-      const cardsRoot = document.getElementById('offerCards');
-      if (cardsRoot){
-        if (isMobile()){
-          const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
-          cardsRoot.innerHTML = items.filter(o => (document.querySelector('#offerFilter .seg-btn.active')?.dataset.filter||'active')==='active' ? isOfferActive(o) : !isOfferActive(o)).map(o=>{
-            const qty = (o.qty_left ?? o.qty_total ?? 0);
-            return `<div class="offer-card" data-offer-id="${o.id}">
-              <div>
-                <div class="title">${o.title||'—'}</div>
-                <div class="meta"><span class="qty">${qty}</span><span>${o.price_cents!=null?(o.price_cents/100).toFixed(2):(o.price||'')}</span></div>
-              </div>
-              <div class="arrow">›</div>
-            </div>`;
-          }).join('');
-          cardsRoot.style.display = '';
-          document.getElementById('offerList').style.display='none';
-        }else{
-          cardsRoot.style.display='none';
-          document.getElementById('offerList').style.display='';
-        }
-      }
-    }catch(_){}
-    
     // bind delete (delegated)
     if (!root.dataset.deleteBound){
       root.dataset.deleteBound = '1';
@@ -1063,37 +1053,28 @@ function drawSpark(canvasId, data){
   }catch(_){}
 }
 
-(function(){
-  let _rt=null; window.addEventListener('resize', ()=>{ clearTimeout(_rt); _rt=setTimeout(()=>{ try{ const items=(window.__FOODY_STATE__&&window.__FOODY_STATE__.offers)||[]; renderOffers(items); }catch(_){}} , 120); }, {passive:true});
-})();
-
 function openOfferDetails(o){
-  const m = document.getElementById('offerDetailsModal'); if (!m) return;
-  document.getElementById('odTitle').textContent = o.title || 'Оффер';
-  const price = o.price_cents!=null?(o.price_cents/100): (o.price||0);
-  const old   = o.original_price_cents!=null?(o.original_price_cents/100): (o.original_price||0);
-  document.getElementById('odPrice').textContent = price ? price.toFixed(2) + (old?` (из ${old.toFixed?old.toFixed(2):old})`:'') : '—';
-  document.getElementById('odQty').textContent = (o.qty_left ?? o.qty_total ?? 0);
-  const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle:'short', timeStyle:'short' });
-  document.getElementById('odExp').textContent = o.expires_at ? fmt.format(new Date(o.expires_at)) : '—';
-  const d = document.getElementById('odDesc'); const wrap = document.getElementById('odDescWrap');
-  if (o.description){ d.textContent = o.description; wrap.style.display=''; } else { d.textContent=''; wrap.style.display='none'; }
-  document.getElementById('odEdit').onclick = ()=>{ m.classList.remove('_open'); openOfferEditModal(o); };
-  document.getElementById('odDelete').onclick = async ()=>{
-    try{ await api(`/api/v1/merchant/offers/${o.id}`, {method:'DELETE'}); showToast('Удалено'); m.classList.remove('_open'); loadOffers(); }catch(err){ showToast('Не удалось удалить: '+(err.message||err)); }
-  };
-  document.getElementById('odClose').onclick = ()=> m.classList.remove('_open');
-  m.classList.add('_open');
+  const m = document.getElementById('offerDetailsModal'); if(!m) return;
+  document.getElementById('detailTitle').textContent = o.title || 'Оффер';
+  const price = o.price_cents!=null ? o.price_cents/100 : (o.price!=null ? Number(o.price) : 0);
+  document.getElementById('detailPrice').textContent = price? price.toFixed(2): '—';
+  const qty = o.qty_left ?? o.qty_total ?? o.qty ?? 0; document.getElementById('detailQty').textContent = String(qty);
+  document.getElementById('detailUntil').textContent = o.expires_at ? new Intl.DateTimeFormat('ru-RU',{dateStyle:'short',timeStyle:'short'}).format(new Date(o.expires_at)) : '—';
+  document.getElementById('detailDesc').textContent = o.description || '—';
+  m.style.display='block';
+  const close = ()=>{ m.style.display='none'; cleanup(); };
+  function cleanup(){ ['offerDetailsClose','offerDetailsEdit','offerDetailsDelete'].forEach(id=>{ const b=document.getElementById(id); if(b){ b.replaceWith(b.cloneNode(true)); }}); }
+  // rebind fresh handlers
+  document.getElementById('offerDetailsClose').onclick = close;
+  document.getElementById('offerDetailsEdit').onclick = ()=>{ close(); openOfferEditModal(o); };
+  document.getElementById('offerDetailsDelete').onclick = async ()=>{ try{ await deleteOffer(o.id); close(); }catch(err){ showToast('Не удалось удалить: '+(err.message||err)); } };
+  m.querySelector('.modal-dim').onclick = close;
 }
 
-document.addEventListener('click', (ev)=>{
-  const card = ev.target.closest && ev.target.closest('.offer-card');
-  if (card){
-    const id = card.getAttribute('data-offer-id');
-    try{
-      const items = (window.__FOODY_STATE__ && window.__FOODY_STATE__.offers) || [];
-      const item = items.find(x=> String(x.id)===String(id)) || {id};
-      openOfferDetails(item);
-    }catch(_){}
-  }
-}, {passive:false});
+async function deleteOffer(id){
+  if (!id) return;
+  if (!confirm('Удалить оффер?')) return;
+  await api(`/api/v1/merchant/offers/${id}`, { method:'DELETE' });
+  showToast('Удалено');
+  loadOffers();
+}
