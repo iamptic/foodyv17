@@ -10,8 +10,40 @@
   let RENDER_N = 24;      // incremental render count
   let CURRENT = null;     // offer opened in sheet
 
-  // Elements
+  
+  // --- Geolocation & distance ---
+  let USER_POS = null; // {lat,lng}
+  function getOfferPos(o){
+    try{
+      if (o.lat!=null && o.lng!=null) return {lat:+o.lat,lng:+o.lng};
+      if (o.latitude!=null && o.longitude!=null) return {lat:+o.latitude,lng:+o.longitude};
+      if (o.restaurant && (o.restaurant.lat!=null || o.restaurant.latitude!=null)){
+        const r=o.restaurant; return {lat:+(r.lat||r.latitude), lng:+(r.lng||r.longitude)};
+      }
+    }catch(_){}
+    return null;
+  }
+  function haversine(a,b){
+    const R=6371; const toRad=v=>v*Math.PI/180;
+    const dLat=toRad(b.lat-a.lat), dLon=toRad(b.lng-a.lng);
+    const lat1=toRad(a.lat), lat2=toRad(b.lat);
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+    return 2*R*Math.asin(Math.sqrt(h)); // km
+  }
+  function getDistanceKm(o){
+    const p=getOfferPos(o); if(!p||!USER_POS) return Infinity;
+    return haversine(USER_POS, p);
+  }
+  function requestGeo(){
+    if (!navigator.geolocation){ toast('Геолокация не поддерживается'); return; }
+    navigator.geolocation.getCurrentPosition((pos)=>{
+      USER_POS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      applyFilterSort(); render(true);
+    }, ()=> toast('Не удалось определить геопозицию'), { enableHighAccuracy:true, timeout:5000, maximumAge:60000 });
+  }
+// Elements
   const grid = $('#grid');
+  const sortSel = document.getElementById('sort');
   const gridSk = $('#gridSkeleton');
   const q = $('#q');
   const filters = $('#filters');
@@ -66,6 +98,8 @@
     });
   }
   q?.addEventListener('input', ()=>{ applyFilterSort(); render(true); });
+  sortSel?.addEventListener('change', ()=>{ applyFilterSort(); render(true); });
+  document.getElementById('nearMe')?.addEventListener('click', requestGeo);
 
   function applyFilterSort(){
     const qv = (q?.value||'').trim().toLowerCase();
@@ -75,8 +109,14 @@
     if (currentFilter==='soon') arr = arr.filter(o=> o.expires_at && (new Date(o.expires_at).getTime()-now) < 4*3600e3 );
     if (currentFilter==='discount') arr = arr.filter(o=> disc((o.price_cents||0)/100,(o.original_price_cents||0)/100) >= 50);
     if (currentFilter==='in_stock') arr = arr.filter(o=> (o.qty_left??0) > 0);
-    // sort: soonest first, then bigger discount
+    // sort
+    const mode = (sortSel?.value||'soon');
     arr.sort((a,b)=>{
+      if (mode==='distance'){
+        const da = getDistanceKm(a), db = getDistanceKm(b);
+        return (da - db);
+      }
+      // default: soonest first, then bigger discount
       const ta = a.expires_at? new Date(a.expires_at).getTime(): Infinity;
       const tb = b.expires_at? new Date(b.expires_at).getTime(): Infinity;
       if (ta!==tb) return ta-tb;
@@ -91,6 +131,7 @@
   function render(reset=false){
     if (!grid) return;
     if (reset){ grid.innerHTML=''; grid.dataset.rendered='0'; }
+    if (VIEW.length===0){ grid.innerHTML = '<div class="empty">Пока нет офферов рядом</div>'; loadMoreWrap.classList.add('hidden'); return; }
     const rendered = Number(grid.dataset.rendered||0);
     const upto = Math.min(VIEW.length, rendered + RENDER_N);
     for (let i=rendered; i<upto; i++){
@@ -157,6 +198,8 @@
       const data = await parseJSON(res);
       if (Array.isArray(data)) ALL = data;
       else if (data && Array.isArray(data.items)) ALL = data.items;
+      else if (data && Array.isArray(data.results)) ALL = data.results;
+      else if (data && data.data && Array.isArray(data.data.offers)) ALL = data.data.offers;
       else ALL = [];
     }catch(_){
       ALL = [];

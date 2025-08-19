@@ -32,3 +32,24 @@
   border-radius: 16px !important;
   box-shadow: var(--shadow) !important;
 }
+
+/* Center Offer Details modal */
+#offerDetailsModal {
+  position: fixed !important;
+  inset: 0 !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(0,0,0,.55) !important;
+  z-index: 59 !important;
+}
+#offerDetailsModal[style*="display:block"]{ display:flex !important; }
+#offerDetailsModal .modal-card{
+  position: relative !important;
+  margin: 0 auto !important;
+  width: min(560px, 92vw) !important;
+  max-height: 90vh !important;
+  overflow: auto !important;
+  border-radius: 16px !important;
+  box-shadow: var(--shadow) !important;
+}

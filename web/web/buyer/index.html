@@ -12,11 +12,11 @@
   <div class="app">
     <header class="appbar">
       <div class="brand">Foody</div>
-      <div class="search-wrap">
+      <div class="search-wrap"><button id="nearMe" class="btn ghost" title="Определить местоположение">📍</button>
         <input id="q" type="search" placeholder="Поиск по названию…" autocomplete="off" />
         <button id="refresh" class="btn ghost">Обновить</button>
       </div>
-      <div id="filters" class="chips">
+      <div id="filters" class="chips"><select id="sort" class="sort"><option value="soon">Скоро истекают</option><option value="discount">Скидка</option><option value="distance">По расстоянию</option></select>
         <button class="chip active" data-filter="all">Все</button>
         <button class="chip" data-filter="soon">Скоро истекают</button>
         <button class="chip" data-filter="discount">С большой скидкой</button>

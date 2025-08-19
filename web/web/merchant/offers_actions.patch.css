@@ -16,3 +16,11 @@
   align-items: center;
 }
 #offerList .row.head { font-weight:600; color:var(--subtext); }
+
+
+/* Pretty cards layout */
+#offerCards{ display:flex; flex-direction:column; gap:10px; }
+.offer-card{ display:flex; justify-content:space-between; align-items:center; padding:12px 14px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); border-radius:12px; cursor:pointer; }
+.offer-card .title{ font-weight:600; }
+.offer-card .meta{ color:var(--muted,#9ca3af); font-size:.92rem; }
+.offer-card:hover{ background:rgba(255,255,255,.05); }

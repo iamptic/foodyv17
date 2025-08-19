@@ -550,7 +550,7 @@ function bindExpirePresets(){
     if (!state.rid || !state.key) return;
     const root = $('#offerList'); if (root) root.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
     try {
-      const data = await api(`/api/v1/merchant/offers?restaurant_id=${encodeURIComponent(state.rid)}`);
+      const data = await api(`/api/v1/merchant/offers?restaurant_id=${encodeURIComponent(state.rid)}`); bindOfferFilterButtons(data?.items||data||[]);
       const list = (data && (data.items || data.results)) ? (data.items || data.results) : (Array.isArray(data) ? data : []);
       window.__FOODY_STATE__ = window.__FOODY_STATE__ || {};
       window.__FOODY_STATE__.offers = list;
@@ -586,6 +586,19 @@ function renderOfferCards(items){
   }).join('');
   root.innerHTML = `<div id="offerCards">${list}</div>`;
 }
+
+function bindOfferFilterButtons(items){
+  try{
+    document.querySelectorAll('#offerFilter .seg-btn').forEach(btn => {
+      btn.addEventListener('click', (e)=>{
+        document.querySelectorAll('#offerFilter .seg-btn').forEach(x=>x.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        renderOffers(items || (window.__FOODY_STATE__ && window.__FOODY_STATE__.offers) || []);
+      }, {passive:true});
+    });
+  }catch(_){}
+}
+
 function renderOffers(items){
   const root = $('#offerList'); if (!root) return;
   if (!Array.isArray(items) || items.length === 0) { root.innerHTML = '<div class="hint">Пока нет офферов</div>'; return; }
@@ -670,7 +683,7 @@ async function refreshDashboard(){
     return;
   }
   try{
-    const data = await api(`/api/v1/merchant/offers?restaurant_id=${encodeURIComponent(state.rid)}`);
+    const data = await api(`/api/v1/merchant/offers?restaurant_id=${encodeURIComponent(state.rid)}`); bindOfferFilterButtons(data?.items||data||[]);
     const list = data?.items || data?.results || data || [];
     renderDashboard(list);
   }catch(e){
@@ -793,7 +806,7 @@ async function postOfferStrict(payload) {
   }
 
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => { try{ bindOfferFilterButtons((window.__FOODY_STATE__&&window.__FOODY_STATE__.offers)||[]);}catch(_){};
   try{document.querySelectorAll('#offerFilter .seg-btn').forEach(b=>b.addEventListener('click', (e)=>{e.preventDefault(); document.querySelectorAll('#offerFilter .seg-btn').forEach(x=>x.classList.remove('active')); e.currentTarget.classList.add('active'); renderOffers(window.__FOODY_STATE__?.offers || []); }));}catch(_){};
     try {
       // Universal [data-tab] router (incl. dashboard buttons)
@@ -980,6 +993,7 @@ function openOfferDetails(o){
   const qty = o.qty_left ?? o.qty_total ?? o.qty ?? 0; document.getElementById('detailQty').textContent = String(qty);
   document.getElementById('detailUntil').textContent = o.expires_at ? new Intl.DateTimeFormat('ru-RU',{dateStyle:'short',timeStyle:'short'}).format(new Date(o.expires_at)) : '—';
   document.getElementById('detailDesc').textContent = o.description || '—';
+  const imgEl = document.getElementById('detailImg'); if (imgEl){ const u = o.image_url||o.image||o.photo||''; if (u){ imgEl.src = u; imgEl.style.display='block'; } else { imgEl.style.display='none'; }}
   m.style.display='block';
   const close = ()=>{ m.style.display='none'; cleanup(); };
   function cleanup(){ ['offerDetailsClose','offerDetailsEdit','offerDetailsDelete'].forEach(id=>{ const b=document.getElementById(id); if(b){ b.replaceWith(b.cloneNode(true)); }}); }
