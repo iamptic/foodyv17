@@ -520,61 +520,41 @@ select.nice-select:focus{ outline:0; border-color:#334155; box-shadow:0 0 0 3px 
 .form-offer .segmented .seg-btn,
 .form-offer button.btn { height: var(--field-h); }
 .form-offer textarea { min-height: 96px; line-height: 1.35; padding: 10px 12px; }
-/* === FIX 1: City modal — гарантированное центрирование === */
+/* === FIX: Центрирование всех модалок (город + редактирование) === */
+#cityModal,
+#offerEditModal {
+  position: fixed !important;
+  inset: 0 !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 100 !important;
 }
-/* считаем модалку «открытой» при любом из вариантов */
-#cityModal[aria-hidden="false"],
+
 #cityModal._open,
-#cityModal.open,
-#cityModal[style*="display:block"],
-#cityModal[style*="display: block"]{
-display: flex !important;
-}
-/* фон */
-#cityModal .modal-backdrop{
-position: absolute; inset: 0;
-background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
-}
-/* карточка диалога: поддерживаем и .modal-dialog, и .dialog (были обе версии) */
-#cityModal .modal-dialog,
-#cityModal .dialog{
-position: relative;
-width: min(520px, 96vw);
-margin: 0 auto;
-background: var(--card, #121821); color: var(--text, #e8edf2);
-border-radius: 16px; box-shadow: var(--shadow, 0 10px 30px rgba(0,0,0,.35));
-overflow: hidden;
-}
-#cityModal .modal-header{ display:flex; align-items:center; justify-content:space-between; padding:16px 18px; font-weight:600; border-bottom: 1px solid rgba(255,255,255,.08); }
-#cityModal .modal-body{ padding:14px 16px 16px; }
-#cityModal .close{ background: transparent; border: 0; font-size: 20px; line-height: 1; cursor: pointer; opacity: .85; }
-#cityModal .close:hover{ opacity: 1; }
-
-
-
-
-/* === FIX 2: Offer Edit modal — гарантированное центрирование === */
-#offerEditModal{
-position: fixed !important; inset: 0 !important;
-display: none; z-index: 110 !important;
-align-items: center !important; justify-content: center !important;
-}
+#cityModal[aria-hidden="false"],
 #offerEditModal.show,
-#offerEditModal._open,
-#offerEditModal.open,
-#offerEditModal[aria-hidden="false"],
-#offerEditModal[style*="display:block"],
-#offerEditModal[style*="display: block"]{
-display: flex !important;
+#offerEditModal[aria-hidden="false"] {
+  display: flex !important;
 }
-/* затемнение */
-#offerEditModal .modal-dim{ position:absolute !important; inset:0 !important; background:rgba(0,0,0,.55) !important; }
-/* карточка редактирования */
-#offerEditModal .modal-card{
-position: relative !important; background: var(--card, #151a21) !important;
-border: 1px solid var(--border, #242b35) !important; border-radius: 16px !important;
-width: min(560px, 92vw) !important; max-height: 90vh !important; overflow: auto !important;
-box-shadow: var(--shadow, 0 10px 30px rgba(0,0,0,.35)) !important;
+
+#cityModal .dialog,
+#offerEditModal .modal-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: min(560px, 92vw);
+  max-height: 90vh;
+  overflow: auto;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 101;
 }
-/* если контейнеру по ошибке остаётся базовый .modal — убираем фон/бордюр у него */
-#offerEditModal.modal{ background: transparent !important; border: 0 !important; width: auto !important; box-shadow: none !important; }
+
+#cityModal::before,
+#offerEditModal .modal-dim {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.55);
+}
