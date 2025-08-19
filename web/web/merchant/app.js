@@ -616,6 +616,7 @@ function renderOffers(items){
 }
 function moneyFmt(n){ try{ return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g,' '); }catch(_){ return String(n); }}
 
+/* Foody patch: enrich dashboard */
 function renderDashboard(offers){
   const guest = document.getElementById('dashGuest');
   const stats = document.getElementById('dashStats');
@@ -1003,3 +1004,20 @@ async function deleteOffer(id){
     m.addEventListener('click', (e)=>{ if (e.target===m || e.target.hasAttribute('data-close')) m.classList.remove('_open'); });
   }
 })();
+
+async function getMyGeo(){
+  if (!navigator.geolocation){ showToast('Геолокация не поддерживается'); return; }
+  const hint = document.getElementById('geoHint'); if (hint){ hint.style.display='block'; hint.textContent='Определяем местоположение…'; }
+  navigator.geolocation.getCurrentPosition(async (pos)=>{
+    const {latitude, longitude} = pos.coords;
+    try{
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=ru`;
+      const res = await fetch(url, {headers:{'User-Agent':'foody-app'}});
+      const data = await res.json();
+      const addr = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+      const input = document.getElementById('address'); if (input) input.value = addr;
+      if (hint){ hint.textContent = 'Адрес подставлен — проверьте и при необходимости поправьте'; }
+    }catch(err){ if (hint){ hint.textContent='Не удалось определить адрес'; } }
+  }, (err)=>{ if (hint){ hint.textContent='Доступ к геолокации отклонён'; } });
+}
+document.addEventListener('click', (e)=>{ const b = e.target.closest('#btnGeo'); if (b){ e.preventDefault(); getMyGeo(); }});
