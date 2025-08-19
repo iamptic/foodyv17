@@ -142,7 +142,7 @@
         const ct = res.headers.get('content-type')||'';
         let msg = `${res.status} ${res.statusText}`;
         if (ct.includes('application/json')) {
-          const j = await res.json().catch(()=>null);
+          const j = ((res.status===204)?null:await res.json()).catch(()=>null);
           if (j && (j.detail || j.message)) msg = j.detail || j.message || msg;
         } else {
           const t = await res.text().catch(()=>'');
@@ -757,7 +757,7 @@ async function postOfferStrict(payload) {
   const doReq = async (u, body) => {
     const res = await fetch(u, { method: 'POST', headers, body: JSON.stringify(body), mode: 'cors' });
     const ct = res.headers.get('content-type') || '';
-    const data = ct.includes('application/json') ? await res.json().catch(()=>({})) : await res.text();
+    const data = ct.includes('application/json') ? ((res.status===204)?null:await res.json()).catch(()=>({})) : await res.text();
     if (!res.ok) {
       const msg = typeof data==='object' && data && data.detail ? data.detail : ('Ошибка ' + res.status);
       const err = new Error(msg); err.status = res.status; err.data = data; throw err;
@@ -939,3 +939,14 @@ if (!ok) activateTab('auth');
     btn.setAttribute('aria-pressed', (!isText).toString());
     if (!isText) { input.setAttribute('data-pwd-is-text','1'); } else { input.removeAttribute('data-pwd-is-text'); }
   });
+
+
+// === Foody v17 Delete Fix Helper ===
+function __foodyDeleteUIRemove(offerId){
+  const row = document.querySelector(`#offerList .row[data-id='${offerId}']`) ||
+              document.getElementById(`offer-${offerId}`) ||
+              document.querySelector(`[data-offer-id='${offerId}']`);
+  if(row){ row.remove(); }
+  const maybe = window.loadOffers || window.refreshOffers;
+  if(typeof maybe === 'function'){ try{ maybe(); }catch(e){} }
+}

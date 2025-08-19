@@ -1,4 +1,4 @@
-/* === Foody v17 minimal patch — Center Edit Offer modal === */
+/* Foody v17 — exact center for the Edit Offer modal */
 #offerEditModal {
   position: fixed !important;
   inset: 0 !important;
@@ -6,19 +6,19 @@
   align-items: center !important;
   justify-content: center !important;
   background: rgba(0,0,0,.55) !important;
-  z-index: 60 !important;
+  z-index: 1000 !important;
 }
 #offerEditModal.show,
 #offerEditModal._open,
 #offerEditModal.open,
 #offerEditModal[aria-hidden="false"],
 #offerEditModal[style*="display:block"],
-#offerEditModal[style*="display: block"]{
+#offerEditModal[style*="display: block"] {
   display: flex !important;
 }
 #offerEditModal .modal,
 #offerEditModal .modal-card,
-#offerEditModal .modal-content{
+#offerEditModal .modal-content {
   position: relative !important;
   margin: 0 auto !important;
   left: auto !important;
@@ -30,5 +30,5 @@
   max-height: 90vh !important;
   overflow: auto !important;
   border-radius: 16px !important;
-  box-shadow: var(--shadow) !important;
+  box-shadow: 0 10px 40px rgba(0,0,0,.45) !important;
 }
