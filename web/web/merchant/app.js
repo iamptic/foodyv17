@@ -556,11 +556,23 @@ function bindExpirePresets(){
     } catch (err) { console.error(err); if (root) root.innerHTML = '<div class="hint">Не удалось загрузить</div>'; } finally { state._offersLoading = false; }
   }
 
-  function renderOffers(items){
+  
+function getOfferFilter(){
+  try { return (document.querySelector('#offerFilter .seg-btn.active')?.dataset.filter) || 'active'; } catch(_){ return 'active'; }
+}
+function isOfferActive(o){
+  try {
+    const now = new Date();
+    const ex = parseMaybeDate(o.expires_at || o.expiresAt || o.expires || o.until);
+    const qty = o.qty_left ?? o.qtyLeft ?? o.qty ?? o.qty_total ?? o.qtyTotal ?? 0;
+    return (qty>0) && (!ex || ex>now);
+  } catch(_){ return true; }
+}
+function renderOffers(items){
     const root = $('#offerList'); if (!root) return;
     if (!Array.isArray(items) || items.length === 0) { root.innerHTML = '<div class="hint">Пока нет офферов</div>'; return; }
     const fmt = new Intl.DateTimeFormat('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
-    const rows = items.map(o => {
+    const f = getOfferFilter(); const rows = items.filter(o => f==="active" ? isOfferActive(o) : !isOfferActive(o)).map(o => {
       const price = o.price_cents!=null ? o.price_cents/100 : (o.price!=null ? Number(o.price) : 0);
       const old   = o.original_price_cents!=null ? o.original_price_cents/100 : (o.original_price!=null ? Number(o.original_price) : 0);
       const disc = old>0 ? Math.round((1 - price/old)*100) : 0;
@@ -603,6 +615,7 @@ function bindExpirePresets(){
         $('#editExpires').value = o.expires_at ? formatLocal(o.expires_at) : (o.expires || '');
         $('#editCategory').value = o.category || 'other';
         $('#editDesc').value = o.description || '';
+        const img = (o.image_url||o.imageUrl||o.image||o.photo||''); const hidden = document.getElementById('editImageUrl'); if (hidden) hidden.value = img;
         m.classList.add('_open');
       }
       function formatLocal(iso){
@@ -625,7 +638,8 @@ function bindExpirePresets(){
           qty_total: Number($('#editQty').value||0),
           expires_at: toIsoLocal($('#editExpires').value||''),
           category: $('#editCategory').value || 'other',
-          description: $('#editDesc').value.trim()
+          description: $('#editDesc').value.trim(),
+          image_url: (document.getElementById('editImageUrl')?.value||'')
         };
         try{
           await api(`/api/v1/merchant/offers/${id}`, { method:'PATCH', body: JSON.stringify(payload) });
@@ -803,7 +817,8 @@ async function postOfferStrict(payload) {
   }
   async function startScan(){
     const msg = document.getElementById('qr_msg');
-    const video = document.getElementById('qr_video');
+    let video = document.getElementById('qr_video');
+    if (!video) { video = document.createElement('video'); video.setAttribute('playsinline',''); video.muted = true; video.style.display='none'; document.body.appendChild(video); }
     if (!('BarcodeDetector' in window)) {
       if (msg){ msg.textContent='Сканер не поддерживается: введите код вручную'; msg.className='tag badge-warn'; }
       return;
@@ -999,3 +1014,17 @@ if (!ok) activateTab('auth');
     btn.setAttribute('aria-pressed', (!isText).toString());
     if (!isText) { input.setAttribute('data-pwd-is-text','1'); } else { input.removeAttribute('data-pwd-is-text'); }
   });
+
+
+function drawSpark(canvasId, data){
+  try{
+    const c = document.getElementById(canvasId); if (!c) return;
+    const ctx = c.getContext('2d'); const W = c.width = c.clientWidth; const H = c.height = c.clientHeight;
+    ctx.clearRect(0,0,W,H); if (!Array.isArray(data) || data.length===0) { ctx.font="12px system-ui"; ctx.fillStyle="rgba(255,255,255,.6)"; ctx.fillText("нет данных", 8, H-8); return; }
+    const max = Math.max(...data,1), min = Math.min(...data,0);
+    const pad = 2; const dx = (W-2*pad) / (data.length-1 || 1);
+    ctx.beginPath(); ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,255,255,.9)";
+    data.forEach((v,i)=>{ const x = pad + i*dx; const y = H - pad - ( (v-min)/(max-min||1) ) * (H-2*pad); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke();
+  }catch(_){}
+}
