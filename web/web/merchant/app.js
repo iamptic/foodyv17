@@ -95,8 +95,7 @@ function parseMaybeDate(x){try{return x?new Date(x):null}catch(_){return null}}
       if (tab === 'create') initCreateTab();
     } catch (e) { console.warn('activateTab failed', e); }
   }
-  on('#tabs','click', (e) => { const btn = e.target.closest('.seg-btn'); if (btn?.dataset.tab) activateTab(btn.dataset.tab);
-try{ if ((arguments[0]||'')==='dashboard') refreshDashboard(); }catch(_){} });
+  on('#tabs','click', (e) => { const btn = e.target.closest('.seg-btn'); if (btn?.dataset.tab) { activateTab(btn.dataset.tab); if (btn.dataset.tab === 'dashboard') { try { refreshDashboard(); } catch(_) {} } }});
   on('.bottom-nav','click', (e) => { const btn = e.target.closest('.nav-btn'); if (btn?.dataset.tab) activateTab(btn.dataset.tab); });
 
   function gate(){
@@ -658,14 +657,22 @@ function renderDashboard(offers){
   }
 
   const kActive = document.getElementById('kpiActive');
+  const kActive2 = document.getElementById('kpi_active');
   const kQty    = document.getElementById('kpiQty');
+  const kQty2 = document.getElementById('kpi_qty');
   const kRev    = document.getElementById('kpiRevenue');
+  const kRev2 = document.getElementById('kpi_rev');
   const kSoon   = document.getElementById('kpiSoon');
+  const kSoon2 = document.getElementById('kpi_soon');
 
   if (kActive) kActive.textContent = String(active);
+  if (kActive2) kActive2.textContent = String(active);
   if (kQty)    kQty.textContent    = String(qtySum);
+  if (kQty2)    kQty2.textContent    = String(qtySum);
   if (kRev)    kRev.textContent    = moneyFmt(revenue)+' ₽';
+  if (kRev2)    kRev2.textContent    = moneyFmt(revenue)+' ₽';
   if (kSoon)   kSoon.textContent   = String(soonCount);
+  if (kSoon2)   kSoon2.textContent   = String(soonCount);
 
   if (guest) guest.style.display = 'none';
   stats.style.display = '';
