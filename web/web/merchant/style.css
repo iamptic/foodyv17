@@ -553,28 +553,56 @@ overflow: hidden;
 
 
 
-/* === FIX 2: Offer Edit modal — гарантированное центрирование === */
-#offerEditModal{
-position: fixed !important; inset: 0 !important;
-display: none; z-index: 110 !important;
-align-items: center !important; justify-content: center !important;
+/* === Foody CSS Patch — 2025‑08‑19 ===
+   1) Center all modals universally
+   2) Align "Категория" select in Offers edit modal
+*/
+
+/* 1) Universal modal centering */
+.modal {
+  display: none;
+  align-items: center;
+  justify-content: center;
 }
-#offerEditModal.show,
-#offerEditModal._open,
-#offerEditModal.open,
-#offerEditModal[aria-hidden="false"],
-#offerEditModal[style*="display:block"],
-#offerEditModal[style*="display: block"]{
-display: flex !important;
+.modal._open,
+.modal.open,
+.modal[aria-hidden="false"],
+.modal[style*="display:block"],
+.modal[style*="display: block"]{
+  display: flex !important;
 }
-/* затемнение */
-#offerEditModal .modal-dim{ position:absolute !important; inset:0 !important; background:rgba(0,0,0,.55) !important; }
-/* карточка редактирования */
-#offerEditModal .modal-card{
-position: relative !important; background: var(--card, #151a21) !important;
-border: 1px solid var(--border, #242b35) !important; border-radius: 16px !important;
-width: min(560px, 92vw) !important; max-height: 90vh !important; overflow: auto !important;
-box-shadow: var(--shadow, 0 10px 30px rgba(0,0,0,.35)) !important;
+
+/* 2) Category select (edit modal) */
+#offerEditForm select,
+#editCategory {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: #0f172a;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  height: var(--field-h);
+  min-height: var(--field-h);
+  padding: 10px 40px 10px 12px;
+  line-height: calc(var(--field-h) - 2px);
+  font-size: 14px;
+  box-sizing: border-box;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' fill='none' stroke='%239aa7b5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 18px;
 }
-/* если контейнеру по ошибке остаётся базовый .modal — убираем фон/бордюр у него */
-#offerEditModal.modal{ background: transparent !important; border: 0 !important; width: auto !important; box-shadow: none !important; }
+#offerEditForm select:focus,
+#editCategory:focus {
+  outline: 0;
+  border-color: #334155;
+  box-shadow: 0 0 0 3px rgba(74,181,241,.15);
+}
+
+/* Ensure same height for selects in create/edit forms */
+#offerForm select, #offerEditForm select {
+  height: var(--field-h);
+  min-height: var(--field-h);
+  line-height: calc(var(--field-h) - 2px);
+}
