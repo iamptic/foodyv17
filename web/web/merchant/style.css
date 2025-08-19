@@ -359,19 +359,17 @@ section#profile .card form :is(button[type="submit"], .actions button[type="subm
 .modal .modal-body{ padding:16px; }
 .modal .modal-actions{ display:flex; gap:10px; justify-content:flex-end; padding:12px 16px; border-top:1px solid var(--border); }
 .modal .modal-actions .btn{ min-width:120px; }
-/* === Exact center for Edit Offer modal by id === */
+
+
+/* === PATCH: Center Edit Modal + fix container class === */
 #offerEditModal {
-  /* ведём себя как .modal-backdrop */
   position: fixed !important;
   inset: 0 !important;
   display: none;
   align-items: center !important;
   justify-content: center !important;
-  background: rgba(0,0,0,.55) !important;
-  z-index: 60 !important; /* чуть выше твоих карточек */
+  z-index: 60 !important;
 }
-
-/* считаем модалку "открытой", если любой из этих признаков */
 #offerEditModal.show,
 #offerEditModal._open,
 #offerEditModal.open,
@@ -381,23 +379,26 @@ section#profile .card form :is(button[type="submit"], .actions button[type="subm
   display: flex !important;
 }
 
-/* внутренняя карточка — отменяем любые старые смещения */
-#offerEditModal .modal,
-#offerEditModal .modal-card,
-#offerEditModal .modal-content{
-  position: relative !important;
-  margin: 0 auto !important;
-  left: auto !important;
-  right: auto !important;
-  top: auto !important;
-  bottom: auto !important;
-  transform: none !important;
+/* container has class .modal which in base CSS styles a card — neutralize it for the backdrop */
+#offerEditModal.modal {
+  background: transparent !important;
+  border: 0 !important;
+  width: auto !important;
+  box-shadow: none !important;
+}
 
-  /* размеры совместим с твоим .modal */
+/* center the actual card */
+#offerEditModal .modal-card {
+  background: var(--card) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 16px !important;
   width: min(560px, 92vw) !important;
   max-height: 90vh !important;
   overflow: auto !important;
-  border-radius: 16px !important;
   box-shadow: var(--shadow) !important;
 }
-
+#offerEditModal .modal-dim {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(0,0,0,.55) !important;
+}

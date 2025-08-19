@@ -132,34 +132,46 @@
     } catch(e){ return null; }
   }
 
-  async function api(path, { method='GET', headers={}, body=null, raw=false } = {}) {
+  
+async function api(path, { method='GET', headers={}, body=null, raw=false } = {}) {
     const url = `${state.api}${path}`;
     const h = { 'Content-Type': 'application/json', ...headers };
     if (state.key) h['X-Foody-Key'] = state.key;
     try {
       const res = await fetch(url, { method, headers: h, body });
+      // --- Accept 204 No Content without trying to parse JSON
+      if (res.status === 204) { 
+        if (raw) return res; 
+        return null; 
+      }
       if (!res.ok) {
         const ct = res.headers.get('content-type')||'';
         let msg = `${res.status} ${res.statusText}`;
         if (ct.includes('application/json')) {
-          const j = await res.json().catch(()=>null);
+          let j = null;
+          try { j = await res.json(); } catch(_) {}
           if (j && (j.detail || j.message)) msg = j.detail || j.message || msg;
         } else {
-          const t = await res.text().catch(()=>'');
+          let t = '';
+          try { t = await res.text(); } catch(_) {}
           if (t) msg += ` — ${t.slice(0,180)}`;
         }
         throw new Error(msg);
       }
       if (raw) return res;
-      const ct = res.headers.get('content-type') || '';
-      return ct.includes('application/json') ? res.json() : res.text();
+      const ct2 = res.headers.get('content-type') || '';
+      if (ct2.includes('application/json')) {
+        try { return await res.json(); } catch(_) { return null; }
+      }
+      try { return await res.text(); } catch(_) { return ''; }
     } catch (err) {
       if (String(err.message).includes('Failed to fetch')) throw new Error('Не удалось связаться с сервером. Проверьте соединение или CORS.');
       throw err;
     }
   }
 
-  const CityPicker = (() => {
+
+const CityPicker = (() => {
     let target = null;
     function open(trg){
       target = trg;
