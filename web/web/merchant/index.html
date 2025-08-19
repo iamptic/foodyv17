@@ -134,6 +134,18 @@
       <div class="card kpi"><div class="card-title small">Потенц. выручка</div><div id="kpiRevenue" class="big">—</div></div>
       <div class="card kpi"><div class="card-title small">Истекают &lt; 2ч</div><div id="kpiSoon" class="big">—</div></div>
     </div>
+    
+    <div id="dashSpark" class="grid two" style="display:none;gap:12px;margin-top:8px;">
+      <div class="card kpi">
+        <div class="card-title small">Брони (14 дней)</div>
+        <div class="big"><span id="sparkTotal">—</span></div>
+        <div class="muted small">Сегодня: <b id="sparkToday">—</b></div>
+      </div>
+      <div class="card">
+        <canvas id="sparkResv" height="56" style="width:100%;"></canvas>
+      </div>
+    </div>
+
     <div id="dashActions" style="display:none;margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
       <button class="btn btn-primary" data-tab="create">Создать оффер</button>
       <button class="btn btn-ghost" data-tab="offers">Мои офферы</button>
@@ -307,6 +319,11 @@
       <section class="pane" id="offers">
         <div class="card">
           <div class="card-title">Мои офферы</div>
+          <div id="offersFilter" class="segmented" style="margin-top:4px;">
+            <button class="seg-btn active" data-offers-filter="active">Активные</button>
+            <button class="seg-btn" data-offers-filter="expired">Истёкшие</button>
+          </div>
+
           <div id="offerList" class="table">
             <div class="skeleton"></div>
             <div class="skeleton"></div>
@@ -413,7 +430,7 @@
               </div>
             </div>
             <div>
-              <video id="qr_video" playsinline muted style="width:100%;border-radius:12px;border:1px solid var(--border);background:#0f172a"></video>
+              <video id="qr_video" playsinline muted style="width:100%;border-radius:12px;border:1px solid var(--border);background:#0f172a" style="display:none;border-radius:12px;border:1px solid var(--border);background:#0f172a"></video>
             </div>
           </div>
         </div>
@@ -496,6 +513,13 @@
           <option value="other">Другое</option>
         </select>
       </label>
+      
+<label class="full">Фото (URL)
+  <input type="url" name="image_url" id="editImageUrl" placeholder="https://...">
+  <div class="photo-preview" id="editPhotoWrap" style="display:none">
+    <img id="editPhotoImg" alt="Текущее фото">
+  </div>
+</label>
       <label class="full">Описание
         <textarea name="description" id="editDesc" rows="3"></textarea>
       </label>
