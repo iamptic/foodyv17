@@ -1,84 +1,178 @@
+
 (() => {
   const $ = (s,r=document)=>r.querySelector(s);
-  const tg = window.Telegram?.WebApp; if (tg){ tg.expand(); const apply=()=>{const s=tg.colorScheme||'dark';document.documentElement.dataset.theme=s;}; apply(); tg.onEvent?.('themeChanged',apply); }
-  const API = (window.__FOODY__&&window.__FOODY__.FOODY_API)||"https://foodyback-production.up.railway.app";
+  const $$ = (s,r=document)=>Array.from(r.querySelectorAll(s));
+  const API = (window.__FOODY__&&window.__FOODY__.FOODY_API) || window.foodyApi || "https://foodyback-production.up.railway.app";
 
-  let offers=[];
-  const grid = $('#grid'), q = $('#q');
+  // State
+  let ALL = [];           // full dataset
+  let VIEW = [];          // filtered/sorted
+  let RENDER_N = 24;      // incremental render count
+  let CURRENT = null;     // offer opened in sheet
 
-  function render(){
-    grid.inne
-  function timeLeft(iso){
+  // Elements
+  const grid = $('#grid');
+  const gridSk = $('#gridSkeleton');
+  const q = $('#q');
+  const filters = $('#filters');
+  const loadMoreWrap = $('#loadMoreWrap');
+  const loadMoreBtn = $('#loadMore');
+  const sheet = $('#sheet');
+  const toastBox = $('#toast');
+  const ticketBar = $('#ticketBar');
+  const ticketOffer = $('#ticketOffer');
+  const ticketCode = $('#ticketCode');
+
+  // Utils
+  const fmt = new Intl.DateTimeFormat('ru-RU', {dateStyle:'short', timeStyle:'short'});
+  function leftStr(iso){
     try{
-      if (!iso) return '';
-      const end = new Date(iso).getTime();
-      const now = Date.now();
-      const diff = Math.max(0, end - now);
-      const m = Math.floor(diff/60000), h = Math.floor(m/60), mm = m%60;
-      if (h>0) return h+'ч '+String(mm).padStart(2,'0')+'м';
-      return m+' мин';
-    }catch(_){ return ''; }
+      if(!iso) return ''; const t = new Date(iso).getTime()-Date.now(); if (t<=0) return 'истёк';
+      const m = Math.floor(t/60000), h = Math.floor(m/60), mm = m%60;
+      return h>0 ? `осталось ${h}ч ${mm}м` : `осталось ${m}м`;
+    }catch(_){return ''}
   }
-rHTML = '';
-    const qs = (q.value||'').toLowerCase();
-    const list = offers
-      .filter(o => (!qs || (o.title||'').toLowerCase().includes(qs)))
-      .filter(o => (o.qty_left??0)>0 && (!o.expires_at || new Date(o.expires_at).getTime()>Date.now()))
-      .sort((a,b)=> new Date(a.expires_at||0) - new Date(b.expires_at||0));
-    if (!list.length){ grid.innerHTML = '<div class="card"><div class="p">Нет офферов</div></div>'; return; }
-    list.forEach(o=>{
-      const price = (o.price_cents||0)/100, old = (o.original_price_cents||0)/100;
-      const disc = old>0? Math.round((1-price/old)*100):0;
-      const el = document.createElement('div'); el.className='card';
-      el.innerHTML = '<img src="'+(o.image_url||'')+'" alt="">' +
-        '<div class="p"><div class="price">'+price.toFixed(0)+' ₽'+(old?'<span class="badge">-'+disc+'%</span>':'')+'</div>' +
-        '<div>'+(o.title||'—')+'</div>' +
-        '<div class="meta"><span>Осталось: '+(o.qty_left??'—')+'</span></div></div>';
-      el.onclick = ()=>open(o); grid.appendChild(el);
+  function disc(price, old){ if (!old || old<=0) return 0; return Math.round( (1 - price/old)*100 ); }
+  function parseJSON(res){ return res.json().catch(_=>({})); }
+  function toast(m){ const el=document.createElement('div'); el.className='t'; el.textContent=m; toastBox.appendChild(el); setTimeout(()=>el.remove(),2800); }
+
+  // Ticket (reservation) bar from localStorage
+  function readTicket(){
+    try{ return JSON.parse(localStorage.getItem('foody_ticket')||'null'); }catch(_){ return null; }
+  }
+  function writeTicket(t){
+    try{
+      if (t) localStorage.setItem('foody_ticket', JSON.stringify(t)); else localStorage.removeItem('foody_ticket');
+      applyTicket();
+    }catch(_){}
+  }
+  function applyTicket(){
+    const t = readTicket();
+    if (t && t.code && t.title){ ticketBar.classList.remove('hidden'); ticketOffer.textContent = t.title; ticketCode.textContent = t.code; }
+    else { ticketBar.classList.add('hidden'); }
+  }
+  $('#showTicket')?.addEventListener('click', ()=>{
+    const t = readTicket(); if (!t) return;
+    openSheet({ title: t.title, image_url: t.image_url, price_cents:t.price_cents, original_price_cents:t.original_price_cents, qty_left:t.qty_left, expires_at:t.expires_at, description:t.description, ticket_code: t.code });
+  });
+
+  // Filters
+  let currentFilter = 'all';
+  if (filters){
+    filters.addEventListener('click', (e)=>{
+      const btn = e.target.closest('.chip'); if (!btn) return;
+      $$('.chip', filters).forEach(b=>b.classList.remove('active')); btn.classList.add('active');
+      currentFilter = btn.dataset.filter || 'all'; applyFilterSort(); render(true);
     });
   }
+  q?.addEventListener('input', ()=>{ applyFilterSort(); render(true); });
 
-  function open(o){
+  function applyFilterSort(){
+    const qv = (q?.value||'').trim().toLowerCase();
+    const now = Date.now();
+    let arr = ALL.slice();
+    if (qv) arr = arr.filter(o=> (o.title||'').toLowerCase().includes(qv));
+    if (currentFilter==='soon') arr = arr.filter(o=> o.expires_at && (new Date(o.expires_at).getTime()-now) < 4*3600e3 );
+    if (currentFilter==='discount') arr = arr.filter(o=> disc((o.price_cents||0)/100,(o.original_price_cents||0)/100) >= 50);
+    if (currentFilter==='in_stock') arr = arr.filter(o=> (o.qty_left??0) > 0);
+    // sort: soonest first, then bigger discount
+    arr.sort((a,b)=>{
+      const ta = a.expires_at? new Date(a.expires_at).getTime(): Infinity;
+      const tb = b.expires_at? new Date(b.expires_at).getTime(): Infinity;
+      if (ta!==tb) return ta-tb;
+      const da = disc((a.price_cents||0)/100,(a.original_price_cents||0)/100);
+      const db = disc((b.price_cents||0)/100,(b.original_price_cents||0)/100);
+      return db-da;
+    });
+    VIEW = arr;
+  }
+
+  // Render
+  function render(reset=false){
+    if (!grid) return;
+    if (reset){ grid.innerHTML=''; grid.dataset.rendered='0'; }
+    const rendered = Number(grid.dataset.rendered||0);
+    const upto = Math.min(VIEW.length, rendered + RENDER_N);
+    for (let i=rendered; i<upto; i++){
+      const o = VIEW[i];
+      const price = (o.price_cents||0)/100, old = (o.original_price_cents||0)/100, d = disc(price, old);
+      const el = document.createElement('div'); el.className='card'; el.innerHTML =
+        `<img loading="lazy" src="${o.image_url||''}" alt="">
+         <div class="p">
+           <div class="price">${price.toFixed(0)} ₽${d?`<span class="badge">-${d}%</span>`:''}</div>
+           <div class="title">${o.title||'—'}</div>
+           <div class="meta">Осталось: ${o.qty_left??'—'}</div>
+         </div>`;
+      el.addEventListener('click', ()=>openSheet(o));
+      grid.appendChild(el);
+    }
+    grid.dataset.rendered = String(upto);
+    loadMoreWrap.classList.toggle('hidden', upto>=VIEW.length);
+  }
+  loadMoreBtn?.addEventListener('click', ()=>render(false));
+
+  // Sheet
+  function openSheet(o){
+    CURRENT = o;
     $('#sTitle').textContent = o.title||'—';
     $('#sImg').src = o.image_url||'';
-    $('#sPrice').textContent = ((o.price_cents||0)/100).toFixed(0)+' ₽';
-    const old=(o.original_price_cents||0)/100; $('#sOld').textContent = old? (old.toFixed(0)+' ₽') : '—';
-    $('#sQty').textContent = (o.qty_left??'—') + ' / ' + (o.qty_total??'—');
-    $('#sExp').textContent = o.expires_at? new Date(o.expires_at).toLocaleString('ru-RU') : '—';
+    const price = (o.price_cents||0)/100, old = (o.original_price_cents||0)/100, d = disc(price, old);
+    $('#sPrice').textContent = price.toFixed(0)+' ₽';
+    $('#sOld').textContent = old? (old.toFixed(0)+' ₽') : '';
+    $('#sDisc').textContent = d? ('-'+d+'%') : '';
+    $('#sQty').textContent = (o.qty_left??'—');
+    $('#sExp').textContent = o.expires_at? fmt.format(new Date(o.expires_at)) : '—';
+    $('#sLeft').textContent = leftStr(o.expires_at||'');
     $('#sDesc').textContent = o.description||'';
-    const left = timeLeft(o.expires_at); if (left) $('#sLeft').textContent = 'Осталось: '+left;
-    $('#sheet').classList.remove('hidden');
-
-    if (tg && tg.MainButton){
-      tg.MainButton.setParams({text:'Забронировать', is_active:true, is_visible:true});
-      const handler = async ()=>{
+    // Reserve button
+    const btn = $('#reserveBtn');
+    if (btn){
+      btn.disabled = false;
+      btn.onclick = async ()=>{
+        btn.disabled = true;
         try{
-          const resp = await fetch(API+'/api/v1/public/reserve', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ offer_id: o.id||o.offer_id, name: (tg.initDataUnsafe?.user?.first_name||'TG'), phone:'' }) });
-          if(!resp.ok) throw new Error('reserve');
+          const resp = await fetch(API+'/api/v1/public/reserve',{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ offer_id: o.id||o.offer_id, name: 'TG', phone: '' })
+          });
+          const data = await parseJSON(resp);
+          if (!resp.ok) throw new Error(data?.detail||'reserve');
           toast('Забронировано ✅');
-          tg.MainButton.hide();
-        }catch(_){ toast('Не удалось забронировать'); }
+          if (data && (data.code||data.ticket_code)){
+            writeTicket({ code: data.code||data.ticket_code, title: o.title, image_url: o.image_url, price_cents:o.price_cents, original_price_cents:o.original_price_cents, qty_left:o.qty_left, expires_at:o.expires_at, description:o.description });
+          }
+        }catch(e){ toast('Не удалось забронировать'); }
+        finally { btn.disabled = false; }
       };
-      tg.onEvent('mainButtonClicked', handler);
-      // store to remove later
-      $('#sheetClose')._off = ()=>{ try{ tg.offEvent('mainButtonClicked', handler); tg.MainButton.hide(); }catch(_){} };
     }
-
-    $('#reserveBtn').onclick = async ()=>{
-      try{
-        const resp = await fetch(API+'/api/v1/public/reserve',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ offer_id: o.id||o.offer_id, name:'TG', phone:'' }) });
-        if(!resp.ok) throw new Error('reserve');
-        toast('Забронировано ✅');
-      }catch(_){ toast('Не удалось забронировать'); }
-    };
+    sheet.classList.remove('hidden');
   }
-  $('#sheetClose').onclick = ()=>{ $('#sheet').classList.add('hidden'); try{ $('#sheetClose')._off && $('#sheetClose')._off(); }catch(_){} };
-  $('#refresh').onclick = load;
-  q.oninput = render;
+  $('#sheetClose')?.addEventListener('click', ()=>{ sheet.classList.add('hidden'); });
 
-  const toastBox = document.getElementById('toast');
-  const toast = (m)=>{ const el=document.createElement('div'); el.className='toast'; el.textContent=m; toastBox.appendChild(el); setTimeout(()=>el.remove(),3200); };
+  // Load
+  async function load(){
+    try{
+      gridSk.classList.remove('hidden');
+      const res = await fetch(API + '/api/v1/public/offers');
+      const data = await parseJSON(res);
+      if (Array.isArray(data)) ALL = data;
+      else if (data && Array.isArray(data.items)) ALL = data.items;
+      else ALL = [];
+    }catch(_){
+      ALL = [];
+    }finally{
+      gridSk.classList.add('hidden');
+      applyFilterSort(); render(true);
+    }
+  }
 
-  async function load(){ try{ $('#gridSkeleton').classList.remove('hidden'); offers = await fetch(API+'/public/offers').then(r=>r.json()).catch(()=>[]); } finally { $('#gridSkeleton').classList.add('hidden'); } render(); }
+  // refresh button
+  $('#refresh')?.addEventListener('click', load);
+
+  // auto refresh every 60s
+  setInterval(()=>{ applyFilterSort(); render(true); }, 60000);
+
+  // init
+  applyTicket();
   load();
 })();

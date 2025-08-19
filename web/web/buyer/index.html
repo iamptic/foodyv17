@@ -9,43 +9,52 @@
   <script defer src="./app.js"></script>
 </head>
 <body>
-  <div class="tg-shell">
-    <header class="tg-appbar">
-      <div class="tg-appbar__left">
-        <div class="avatar">F</div>
-        <div class="meta">
-          <div class="title">Foody · Витрина</div>
-          <div class="subtitle">Скидки перед закрытием</div>
-        </div>
+  <div class="app">
+    <header class="appbar">
+      <div class="brand">Foody</div>
+      <div class="search-wrap">
+        <input id="q" type="search" placeholder="Поиск по названию…" autocomplete="off" />
+        <button id="refresh" class="btn ghost">Обновить</button>
+      </div>
+      <div id="filters" class="chips">
+        <button class="chip active" data-filter="all">Все</button>
+        <button class="chip" data-filter="soon">Скоро истекают</button>
+        <button class="chip" data-filter="discount">С большой скидкой</button>
+        <button class="chip" data-filter="in_stock">Есть в наличии</button>
       </div>
     </header>
 
-    <main class="tg-content">
-      <div class="toolbar">
-        <input id="q" class="search" placeholder="Поиск" />
-        <button id="refresh" class="btn">Обновить</button>
-      </div>
+    <main class="content">
+      <div id="gridSkeleton" class="skeleton-grid hidden"></div>
       <div id="grid" class="grid"></div>
-      <div id="gridSkeleton" class="grid skeleton hidden"></div>
+      <div id="loadMoreWrap" class="load-more hidden"><button id="loadMore" class="btn">Показать ещё</button></div>
     </main>
+
+    <footer id="ticketBar" class="ticket-bar hidden">
+      <div>Моя бронь: <span id="ticketOffer">—</span> • Код: <b id="ticketCode">—</b></div>
+      <div class="actions"><button id="showTicket" class="btn ghost">Показать</button></div>
+    </footer>
   </div>
 
+  <!-- Details Sheet -->
   <div id="sheet" class="sheet hidden">
-    <div class="sheet__dialog">
-      <div class="sheet__h">
-        <div class="sheet__t" id="sTitle">—</div>
-        <button class="sheet__x" id="sheetClose">×</button>
-      </div>
-      <div class="sheet__b">
-        <img id="sImg" alt="" />
-        <div class="meta">
-          <div id="sPrice" class="price">—</div>
-          <div id="sOld" class="old">—</div>
-          <div id="sQty" class="qty">—</div>
-          <div id="sExp" class="exp">—</div><div id="sLeft" class="left muted">—</div>
+    <div class="sheet__backdrop"></div>
+    <div class="sheet__panel">
+      <button id="sheetClose" class="close">×</button>
+      <div class="sheet__grid">
+        <img id="sImg" class="sheet__img" alt="">
+        <div class="sheet__meta">
+          <h3 id="sTitle">—</h3>
+          <div class="sheet__price"><span id="sPrice">—</span> <s id="sOld" class="muted"></s> <span id="sDisc" class="badge muted"></span></div>
+          <div class="sheet__rows">
+            <div><span class="muted">Остаток:</span> <b id="sQty">—</b></div>
+            <div><span class="muted">До:</span> <span id="sExp">—</span> <span id="sLeft" class="muted"></span></div>
+          </div>
+          <div id="sDesc" class="desc">—</div>
+          <div class="actions">
+            <button id="reserveBtn" class="btn primary">Забронировать</button>
+          </div>
         </div>
-        <div id="sDesc" class="desc">—</div>
-        <div class="actions"><button id="reserveBtn" class="btn primary">Забронировать</button></div>
       </div>
     </div>
   </div>
